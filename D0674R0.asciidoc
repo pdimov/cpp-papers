@@ -7,7 +7,8 @@ Document Number:: D0674R0
 Date:: 2017-06-15
 Project:: Programming Language C++
 Audience:: Library Evolution Working Group
-Summary:: This paper proposes adding array support to `make_shared`, via the syntax `make_shared<T[]>` and `make_shared<T[N]>`.
+Summary:: This paper proposes adding array support to `make_shared` and `allocate_shared`,
+  via the syntax `make_shared<T[]>` and `make_shared<T[N]>`.
 
 toc::[]
 
@@ -24,16 +25,19 @@ This revision of N3870 removes the scalar `T&&` overloads, reflecting the result
 
 ### Changes in Revision 1
 
-This revision of N3641 significantly narrows the scope of the proposal, based on feedback from Jeffrey Yasskin and Stephan T. Lavavej. It cuts down the number of `make_shared` overloads considerably, leaving only two use cases:
+This revision of N3641 significantly narrows the scope of the proposal, based on feedback from Jeffrey Yasskin and Stephan T. Lavavej.
+It cuts down the number of overloads considerably, leaving only two use cases:
 
-- Value initialization, analogous to new `U[N]()`:
+- Value initialization, analogous to `new U[N]()`:
 +
     template<class T> shared_ptr<T> make_shared(size_t N); // T is U[]
++
     template<class T> shared_ptr<T> make_shared(); // T is U[N]
 
 - Per-element initialization to a specified value, analogous to the `std::vector<U>(N, u)` constructor:
 +
     template<class T> shared_ptr<T> make_shared(size_t N, const U& u); // T is U[]
++
     template<class T> shared_ptr<T> make_shared(const U& u); // T is U[N]
 
 ## Motivation
