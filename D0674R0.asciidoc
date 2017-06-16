@@ -123,7 +123,7 @@ template<class T, class A, ...> shared_ptr<T> allocate_shared(const A& a, _args_
 ```
 
 [horizontal]
-_Requires:_:: A shall be an _allocator_ (20.5.3.5). The copy constructor, move constructor and destructor of `A` shall not throw exceptions.
+_Requires:_:: A shall be an _allocator_ (20.5.3.5).
 
 _Effects:_:: Allocates memory for an object of type `T` (or `U[N]` when `T` is `U[]`, where `N` is determined from `_args_` as specified by the concrete overload).
 The object is initialized from `_args_` as specified by the concrete overload. The `allocate_shared` templates use a copy of `a` (rebound for an unspecified `value_type`) to allocate memory. If an exception is thrown, the functions have no effect.
