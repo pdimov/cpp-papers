@@ -3,7 +3,7 @@ Peter Dimov <pdimov@pdimov.com>, Glen Fernandes <glenjofe@gmail.com>
 :toc: macro
 
 [horizontal]
-Document Number:: D0674R0
+Document Number:: P0674R0
 Date:: 2017-06-15
 Project:: Programming Language C++
 Audience:: Library Evolution Working Group
