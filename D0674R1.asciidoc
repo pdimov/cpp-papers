@@ -3,8 +3,8 @@ Peter Dimov <pdimov@pdimov.com>, Glen Fernandes <glenjofe@gmail.com>
 :toc: macro
 
 [horizontal]
-Document Number:: P0674R0
-Date:: 2017-06-15
+Document Number:: D0674R1
+Date:: 2017-07-12
 Project:: Programming Language C++
 Audience:: Library Evolution Working Group
 Summary:: This paper proposes adding array support to `make_shared` and `allocate_shared`,
@@ -13,6 +13,10 @@ Summary:: This paper proposes adding array support to `make_shared` and `allocat
 toc::[]
 
 ## Revision History
+
+### Changes in 0674R1
+
+This revision of P0674R0 replaces the use of _initialized to_ and _value-initialized_ to avoid conflict with the core language terms.
 
 ### Changes in Revision 3
 
@@ -136,19 +140,19 @@ _Throws:_:: `bad_alloc`, an exception thrown from `allocate`, or from the initia
 
 _Remarks:_::
 * Implementations should perform no more than one memory allocation. [ _Note:_ This provides efficiency equivalent to an intrusive smart pointer. _-- end note_ ].
-* When an object of an array type `U` is specified to be _initialized to_ a value `u` of the same type, this shall be interpreted to mean that each array element of
-  the object is initialized to the corresponding element from `u`.
-* When an object of an array type is specified to be _value-initialized_, this shall be interpreted to mean that each array element of the object is _value-initialized_.
-* When a (sub)object of a non-array type `U` is specified to be _initialized to_ a value `v`, or to `U(l\...)`, where `l\...` is a list of constructor arguments,
-  `make_shared` shall perform this initialization via the expression `::new(pv) U(v)` or `::new(pv) U(l\...)` respectively, where `pv` has type `void*` and points
+* When an object of an array type `U` is specified to have an _initial value_ of `u` (of the same type), this shall be interpreted to mean that each array element of
+  the object has as its _initial value_ the corresponding element from `u`.
+* When an object of an array type is specified to have a _default initial value_, this shall be interpreted to mean that each array element of the object has a _default initial value_.
+* When a (sub)object of a non-array type `U` is specified to have an _initial value_ of `v`, or `U(l\...)`, where `l\...` is a list of constructor arguments,
+  `make_shared` shall initialize this (sub)object via the expression `::new(pv) U(v)` or `::new(pv) U(l\...)` respectively, where `pv` has type `void*` and points
   to storage suitable to hold an object of type `U`.
-* When a (sub)object of a non-array type `U` is specified to be _initialized to_ a value `v`, or to `U(l\...)`, where `l\...` is a list of constructor arguments,
-  `allocate_shared` shall perform this initialization via the expression `allocator_traits<A2>::construct(a2, pv, v)` or `allocator_traits<A2>::construct(a2, pv, l\...)`
+* When a (sub)object of a non-array type `U` is specified to have an _initial value_ of `v`, or `U(l\...)`, where `l\...` is a list of constructor arguments,
+  `allocate_shared` shall initialize this (sub)object via the expression `allocator_traits<A2>::construct(a2, pv, v)` or `allocator_traits<A2>::construct(a2, pv, l\...)`
   respectively, where `pv` points to storage suitable to hold an object of type `U` and `a2` of type `A2` is a rebound copy of the allocator `a` passed to `allocate_shared`
   such that its `value_type` is `U`.
-* When a (sub)object of non-array type `U` is specified to be _value-initialized_, `make_shared` shall perform this initialization via the expression `::new(pv) U()`,
+* When a (sub)object of non-array type `U` is specified to have a _default initial value_, `make_shared` shall initialize this (sub)object via the expression `::new(pv) U()`,
   where `pv` has type `void*` and points to storage suitable to hold an object of type `U`.
-* When a (sub)object of non-array type `U` is specified to be _value-initialized_, `allocate_shared` shall perform this initialization via the expression
+* When a (sub)object of non-array type `U` is specified to have a _default initial value_, `allocate_shared` shall initialize this (sub)object via the expression
   `allocator_traits<A2>::construct(a2, pv)`, where `pv` points to storage suitable to hold an object of type `U` and `a2` of type `A2` is a rebound copy of the allocator `a`
   passed to `allocate_shared` such that its `value_type` is `U`.
 * Array elements are initialized in ascending order of their addresses.
@@ -166,7 +170,7 @@ template<class T, class A, class... Args>
   shared_ptr<T> allocate_shared(const A& a, Args&&... args); // T is not array
 ```
 [horizontal]
-_Returns:_:: A `shared_ptr` to an object of type `T`, initialized to `T(forward<Args>(args)\...)`.
+_Returns:_:: A `shared_ptr` to an object of type `T` with an _initial value_ `T(forward<Args>(args)\...)`.
 _Remarks:_:: These overloads shall only participate in overload resolution when `T` is not an array type.
   The `shared_ptr` constructors called by these functions enable `shared_from_this` with the address of
   the newly constructed object of type `T`.
@@ -188,7 +192,7 @@ template<class T, class A>
   shared_ptr<T> allocate_shared(const A& a, size_t N); // T is U[]
 ```
 [horizontal]
-_Returns:_:: A `shared_ptr` to a _value-initialized_ object of type `U[N]`, where `U` is `remove_extent_t<T>`.
+_Returns:_:: A `shared_ptr` to an object of type `U[N]` with a _default initial value_, where `U` is `remove_extent_t<T>`.
 _Remarks:_:: These overloads shall only participate in overload resolution when `T` is of the form `U[]`.
 
 [ _Example:_
@@ -209,7 +213,7 @@ template<class T, class A>
   shared_ptr<T> allocate_shared(const A& a); // T is U[N]
 ```
 [horizontal]
-_Returns:_:: A `shared_ptr` to a _value-initialized_ object of type `T`.
+_Returns:_:: A `shared_ptr` to an object of type `T` with a _default initial value_.
 _Remarks:_:: These overloads shall only participate in overload resolution when `T` is of the form `U[N]`.
 
 [ _Example:_
@@ -232,7 +236,7 @@ template<class T, class A>
     const remove_extent_t<T>& u); // T is U[]
 ```
 [horizontal]
-_Returns:_:: A `shared_ptr` to an object of type `U[N]`, where `U` is `remove_extent_t<T>` and each array element is _initialized to_ `u`.
+_Returns:_:: A `shared_ptr` to an object of type `U[N]`, where `U` is `remove_extent_t<T>` and each array element has an _initial value_ of `u`.
 _Remarks:_:: These overloads shall only participate in overload resolution when `T` is of the form `U[]`.
 
 [ _Example:_
@@ -258,7 +262,7 @@ template<class T, class A>
     const remove_extent_t<T>& u); // T is U[N]
 ```
 [horizontal]
-_Returns:_:: A `shared_ptr` to an object of type `T`, where each array element of type `remove_extent_t<T>` is _initialized to_ `u`.
+_Returns:_:: A `shared_ptr` to an object of type `T`, where each array element of type `remove_extent_t<T>` has an _initial value_ of `u`.
 _Remarks:_:: These overloads shall only participate in overload resolution when `T` is of the form `U[N]`.
 
 [ _Example:_
