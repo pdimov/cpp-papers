@@ -1,0 +1,1169 @@
+# Adding support for type-based metaprogramming to the standard library
+Peter Dimov <pdimov@pdimov.com>
+:toc: macro
+
+[horizontal]
+Document Number:: DxxxxR0
+Date:: 2018-02-07
+Project:: Programming Language C++
+Audience:: Library Evolution Working Group
+Summary:: This paper proposes adding support for type-based metaprogramming to the standard library, based on Boost.Mp11.
+
+toc::[]
+
+## Overview
+
+## Motivation
+
+## Proposed Text
+
+[.navy]#_Add a new subclause in [utilities] with the following contents:_#
+
+### Type-based metaprogramming
+
+This subclause contains facilities enabling compile-time manipulation of types and collections of types.
+
+#### Header <type_programming> synopsis
+
+```
+namespace std {
+
+  // integral constants
+
+  template<bool B> using mp_bool = integral_constant<bool, B>;
+  template<int I> using mp_int = integral_constant<int, I>;
+  template<size_t N> using mp_size_t = integral_constant<size_t, N>;
+
+  using mp_true = mp_bool<true>;
+  using mp_false = mp_bool<false>;
+
+  template<class T> using mp_to_bool = mp_bool<static_cast<bool>(T::value)>;
+  template<class T> using mp_not = mp_bool< !T::value >;
+
+  // utility components
+
+  template<class T> struct mp_identity;
+  template<class T> using mp_identity_t = typename mp_identity<T>::type;
+
+  template<class... T> struct mp_inherit;
+
+  template<bool C, class T, class E> using mp_if_c = /*see below*/;
+  template<class C, class T, class E> using mp_if =
+    mp_if_c<static_cast<bool>(C::value), T, E>;
+
+  template<bool C, class T, template<class...> class F, class... U> using mp_eval_if_c =
+    /*see below*/;
+  template<class C, class T, template<class...> class F, class... U> using mp_eval_if =
+    mp_eval_if_c<static_cast<bool>(C::value), T, F, U...>;
+  template<class C, class T, class Q, class... U> using mp_eval_if_q =
+    mp_eval_if<C, T, Q::template fn, U...>;
+
+  template<class C, class T, class... R> using mp_cond = /*see below*/;
+
+  template<template<class...> class F, class... T> using mp_valid = /*see below*/;
+  template<template<class...> class F, class... T> using mp_defer = /*see below*/;
+
+  template<template<class...> class F> struct mp_quote;
+  template<template<class...> class F> struct mp_quote_trait;
+  template<class Q, class... T> using mp_invoke = typename Q::template fn<T...>;
+
+  // list operations
+
+  template<class... T> struct mp_list {};
+
+  template<class T, T... I> using mp_list_c =
+    mp_list<integral_constant<T, I>...>;
+
+  template<class L> using mp_is_list = /*see below*/;
+
+  template<class L> using mp_size = /*see below*/;
+  template<class L> using mp_empty = mp_bool<mp_size<L>::value == 0>;
+
+  template<class L1, class L2> using mp_assign = /*see below*/;
+  template<class L> using mp_clear = mp_assign<L, mp_list<>>;
+
+  template<class L> using mp_front = /*see below*/;
+  template<class L> using mp_pop_front = /*see below*/;
+  template<class L> using mp_first = mp_front<L>;
+  template<class L> using mp_rest = mp_pop_front<L>;
+  template<class L> using mp_second = /*see below*/;
+  template<class L> using mp_third = /*see below*/;
+
+  template<class L, class... T> using mp_push_front = /*see below*/;
+  template<class L, class... T> using mp_push_back = /*see below*/;
+
+  template<class L, template<class...> class Y> using mp_rename = /*see below*/;
+  template<template<class...> class F, class L> using mp_apply = mp_rename<L, F>;
+  template<class Q, class L> using mp_apply_q = mp_apply<Q::template fn, L>;
+
+  template<class... L> using mp_append = /*see below*/;
+
+  template<class L, class T> using mp_replace_front = /*see below*/;
+  template<class L, class T> using mp_replace_first = mp_replace_front<L, T>;
+  template<class L, class T> using mp_replace_second = /*see below*/;
+  template<class L, class T> using mp_replace_third = /*see below*/;
+
+  // algorithms
+
+  template<template<class...> class F, class... L> using mp_transform = /*see below*/;
+  template<class Q, class... L> using mp_transform_q =
+    mp_transform<Q::template fn, L...>;
+  template<template<class...> class P, template<class...> class F, class... L>
+    using mp_transform_if = /*see below*/;
+  template<class Qp, class Qf, class... L> using mp_transform_if_q =
+    mp_transform_if<Qp::template fn, Qf::template fn, L...>;
+
+  template<class L, class V> using mp_fill = /*see below*/;
+
+  template<class L, class V> using mp_count = /*see below*/;
+  template<class L, template<class...> class P> using mp_count_if = /*see below*/;
+  template<class L, class Q> using mp_count_if_q = mp_count_if<L, Q::template fn>;
+
+  template<class L, class V> using mp_contains = mp_to_bool<mp_count<L, V>>;
+
+  template<class L, size_t N> using mp_repeat_c = /*see below*/;
+  template<class L, class N> using mp_repeat = mp_repeat_c<L, size_t{N::value}>;
+
+  template<template<class...> class F, class... L> using mp_product = /*see below*/;
+  template<class Q, class... L> using mp_product_q = mp_product<Q::template fn, L...>;
+
+  template<class L, size_t N> using mp_drop_c = /*see below*/;
+  template<class L, class N> using mp_drop = mp_drop_c<L, size_t{N::value}>;
+
+  template<class S> using mp_from_sequence = /*see below*/
+  template<size_t N> using mp_iota_c = mp_from_sequence<make_index_sequence<N>>;
+  template<class N> using mp_iota =
+    mp_from_sequence<make_integer_sequence<remove_const_t<decltype(N::value)>, N::value>>;
+
+  template<class L, size_t I> using mp_at_c = /*see below*/;
+  template<class L, class I> using mp_at = mp_at_c<L, size_t{I::value}>;
+
+  template<class L, size_t N> using mp_take_c = /*see below*/;
+  template<class L, class N> using mp_take = mp_take_c<L, size_t{N::value}>;
+
+  template<class L, size_t I, class... T> using mp_insert_c =
+    mp_append<mp_take_c<L, I>, mp_push_front<mp_drop_c<L, I>, T...>>;
+  template<class L, class I, class... T> using mp_insert =
+    mp_append<mp_take<L, I>, mp_push_front<mp_drop<L, I>, T...>>;
+
+  template<class L, size_t I, size_t J> using mp_erase_c =
+    mp_append<mp_take_c<L, I>, mp_drop_c<L, J>>;
+  template<class L, class I, class J> using mp_erase =
+    mp_append<mp_take<L, I>, mp_drop<L, J>>;
+
+  template<class L, class V, class W> using mp_replace = /*see below*/;
+  template<class L, template<class...> class P, class W> using mp_replace_if = /*see below*/;
+  template<class L, class Q, class W> using mp_replace_if_q =
+    mp_replace_if<L, Q::template fn, W>;
+  template<class L, size_t I, class W> using mp_replace_at_c = /*see below*/;
+  template<class L, class I, class W> using mp_replace_at =
+    mp_replace_at_c<L, size_t{I::value}, W>;
+
+  template<class L, template<class...> class P> using mp_copy_if = /*see below*/;
+  template<class L, class Q> using mp_copy_if_q = mp_copy_if<L, Q::template fn>;
+
+  template<class L, class V> using mp_remove = /*see below*/;
+  template<class L, template<class...> class P> using mp_remove_if = /*see below*/;
+  template<class L, class Q> using mp_remove_if_q = mp_remove_if<L, Q::template fn>;
+
+  template<class L, template<class...> class P> using mp_partition = /*see below*/;
+  template<class L, class Q> using mp_partition_q = mp_partition<L, Q::template fn>;
+  template<class L, template<class...> class P> using mp_sort = /*see below*/;
+  template<class L, class Q> using mp_sort_q = mp_sort<L, Q::template fn>;
+  template<class L, size_t I, template<class...> class P> using mp_nth_element_c =
+    /*see below*/;
+  template<class L, class I, template<class...> class P> using mp_nth_element =
+    mp_nth_element_c<L, size_t{I::value}, P>;
+  template<class L, class I, class Q> using mp_nth_element_q =
+    mp_nth_element<L, I, Q::template fn>;
+  template<class L, template<class...> class P> using mp_min_element = /*see below*/;
+  template<class L, class Q> using mp_min_element_q = mp_min_element<L, Q::template fn>;
+  template<class L, template<class...> class P> using mp_max_element = /*see below*/;
+  template<class L, class Q> using mp_max_element_q = mp_max_element<L, Q::template fn>;
+
+  template<class L, class V> using mp_find = /*see below*/;
+  template<class L, template<class...> class P> using mp_find_if = /*see below*/;
+  template<class L, class Q> using mp_find_if_q = mp_find_if<L, Q::template fn>;
+
+  template<class L> using mp_reverse = /*see below*/;
+
+  template<class L, class V, template<class...> class F> using mp_fold = /*see below*/;
+  template<class L, class V, class Q> using mp_fold_q =
+    mp_fold<L, V, Q::template fn>;
+  template<class L, class V, template<class...> class F> using mp_reverse_fold =
+    /*see below*/;
+  template<class L, class V, class Q> using mp_reverse_fold_q =
+    mp_reverse_fold<L, V, Q::template fn>;
+
+  template<class L> using mp_unique = /*see below*/;
+
+  template<class L, template<class...> class P> using mp_all_of =
+    mp_bool<mp_count_if<L, P>::value == mp_size<L>::value>;
+  template<class L, class Q> using mp_all_of_q = mp_all_of<L, Q::template fn>;
+  template<class L, template<class...> class P> using mp_none_of =
+    mp_bool<mp_count_if<L, P>::value == 0>;
+  template<class L, class Q> using mp_none_of_q = mp_none_of<L, Q::template fn>;
+  template<class L, template<class...> class P> using mp_any_of =
+    mp_bool<mp_count_if<L, P>::value != 0>;
+  template<class L, class Q> using mp_any_of_q = mp_any_of<L, Q::template fn>;
+
+  template<class L, class F> constexpr F mp_for_each(F&& f);
+
+  template<size_t N, class F>
+    constexpr auto mp_with_index(size_t i, F&& f)
+      -> decltype(declval<F>()(declval<mp_size_t<0>>()));
+  template<class N, class F>
+    constexpr auto mp_with_index(size_t i, F&& f)
+      -> decltype(declval<F>()(declval<mp_size_t<0>>()));
+
+  // set operations
+
+  template<class S> using mp_is_set = /*see below*/;
+  template<class S, class V> using mp_set_contains = /*see below*/;
+  template<class S, class... T> using mp_set_push_back = /*see below*/;
+  template<class S, class... T> using mp_set_push_front = /*see below*/;
+
+  // map operations
+
+  template<class M> using mp_is_map = /*see below*/;
+  template<class M, class K> using mp_map_find = /*see below*/;
+  template<class M, class K> using mp_map_contains =
+    mp_not<is_same<mp_map_find<M, K>, void>>;
+  template<class M, class T> using mp_map_insert =
+    mp_if<mp_map_contains<M, mp_first<T>>, M, mp_push_back<M, T>>;
+  template<class M, class T> using mp_map_replace = /*see below*/;
+  template<class M, class T, template<class...> class F> using mp_map_update = /*see below*/;
+  template<class M, class T, class Q> using mp_map_update_q =
+    mp_map_update<M, T, Q::template fn>;
+  template<class M, class K> using mp_map_erase = /*see below*/;
+  template<class M> using mp_map_keys = mp_transform<mp_first, M>;
+
+  // helper metafunctions
+
+  template<class... T> using mp_and = /*see below*/;
+  template<class... T> using mp_all = /*see below*/;
+  template<class... T> using mp_or = /*see below*/;
+  template<class... T> using mp_any = /*see below*/;
+  template<class... T> using mp_same = /*see below*/;
+  template<class... T> using mp_plus = /*see below*/;
+  template<class T1, class T2> using mp_less = /*see below*/;
+  template<class T1, class... T> using mp_min = mp_min_element<mp_list<T1, T...>, mp_less>;
+  template<class T1, class... T> using mp_max = mp_max_element<mp_list<T1, T...>, mp_less>;
+
+  // bind
+
+  template<size_t I> struct mp_arg;
+
+  using _1 = mp_arg<0>;
+  using _2 = mp_arg<1>;
+  using _3 = mp_arg<2>;
+  using _4 = mp_arg<3>;
+  using _5 = mp_arg<4>;
+  using _6 = mp_arg<5>;
+  using _7 = mp_arg<6>;
+  using _8 = mp_arg<7>;
+  using _9 = mp_arg<8>;
+
+  template<template<class...> class F, class... T> struct mp_bind;
+  template<class Q, class... T> using mp_bind_q = mp_bind<Q::template fn, T...>;
+  template<template<class...> class F, class... T> struct mp_bind_front;
+  template<class Q, class... T> using mp_bind_front_q =
+    mp_bind_front<Q::template fn, T...>;
+  template<template<class...> class F, class... T> struct mp_bind_back;
+  template<class Q, class... T> using mp_bind_back_q =
+    mp_bind_back<Q::template fn, T...>;
+
+} // namespace std
+```
+
+#### Utility Components
+
+```
+template<class T> struct mp_identity
+{
+  using type = T;
+};
+```
+
+```
+template<class... T> struct mp_inherit: T... {};
+```
+
+```
+template<bool C, class T, class E> using mp_if_c = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `T` when `C` is `true`, otherwise `E`.
+
+```
+template<bool C, class T, template<class...> class F, class... U> using mp_eval_if_c =
+  /*see below*/;
+```
+[horizontal]
+_Returns:_:: `T` when `C` is `true`, otherwise `F<U...>`.
+_Remarks:_:: `F<U...>` is not evaluated when `C` is `true`. When `C` is `false` and
+`F<U...>` causes a substitution failure, the result is a substitution failure.
+
+```
+template<class C, class T, class... R> using mp_cond = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `T` when `static_cast<bool>(C::value)` is `true`, otherwise `mp_cond<R...>`.
+_Remarks:_:: When `static_cast<bool>(C::value)` causes a substitution failure, the result is a substitution failure.
+
+[ _Example:_
+```
+template<int N> using unsigned_ = mp_cond<
+    mp_bool<N ==  8>, uint8_t,
+    mp_bool<N == 16>, uint16_t,
+    mp_bool<N == 32>, uint32_t,
+    mp_bool<N == 64>, uint64_t,
+    mp_true, unsigned // default case
+>;
+```
+_-- end example_ ].
+
+```
+template<template<class...> class F, class... T> using mp_valid = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `mp_true` when `F<T...>` is a valid expression, `mp_false` when `F<T...>` causes a substitution failure.
+
+```
+template<template<class...> class F, class... T> using mp_defer = /*see below*/;
+```
+[horizontal]
+_Returns:_::
+* when `F<T...>` is a valid expression,
++
+[subs=+quotes]
+```
+struct _unspecified-type-1_
+{
+  using type = F<T...>;
+};
+```
+* when `F<T...>` causes a substitution failure,
++
+[subs=+quotes]
+```
+struct _unspecified-type-2_
+{
+};
+```
+
+```
+template<template<class...> class F> struct mp_quote
+{
+  template<class... T> using fn = typename mp_defer<F, T...>::type;
+};
+```
+
+```
+template<template<class...> class F> struct mp_quote_trait
+{
+  template<class... T> using fn = typename F<T...>::type;
+};
+```
+
+#### List Operations
+
+```
+template<class L> using mp_is_list = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `mp_true` when `L` is a _list_ (an instantiation of a class template whose parameters are all types), `mp_false` otherwise.
+
+```
+template<class L> using mp_size = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `mp_size_t<sizeof...(T)>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = mp_list<>;
+using R1 = mp_size<L1>; // mp_size_t\<0>
+
+using L2 = pair<int, int>;
+using R2 = mp_size<L2>; // mp_size_t\<2>
+
+using L3 = tuple<float>;
+using R3 = mp_size<L3>; // mp_size_t\<1>
+```
+_-- end example_ ].
+
+```
+template<class L1, class L2> using mp_assign = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L1` is a _list_ of the form `K1<T1...>` and `L2` is a _list_ of the form `K2<T2...>`, `K1<T2...>`. Otherwise, causes
+a substitution failure. [ _Note:_ That is, `mp_assign` replaces the elements of `L1` with those of `L2`. _-- end note_ ]
+
+[ _Example:_
+```
+using L1 = tuple<long>;
+using L2 = pair<long, char>;
+using L3 = mp_list<int, float>;
+
+using R1 = mp_assign<L1, L3>; // tuple<int, float>
+using R2 = mp_assign<L2, L3>; // pair<int, float>
+```
+_-- end example_ ].
+
+```
+template<class L> using mp_front = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T1, T...>`, `T1`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = pair<int, float>;
+using R1 = mp_front<L1>; // int
+
+using L2 = tuple<float, double, long double>;
+using R2 = mp_front<L2>; // float
+```
+_-- end example_ ].
+
+```
+template<class L> using mp_pop_front = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T1, T...>`, `K<T...>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<float, double, long double>;
+using R1 = mp_pop_front<L1>; // tuple<double, long double>
+
+using L2 = mp_list<void>;
+using R2 = mp_pop_front<L2>; // mp_list<>
+```
+_-- end example_ ].
+
+```
+template<class L> using mp_second = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T1, T2, T...>`, `T2`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = pair<int, float>;
+using R1 = mp_second<L1>; // float
+
+using L2 = tuple<float, double, long double>;
+using R2 = mp_second<L2>; // double
+```
+_-- end example_ ].
+
+```
+template<class L> using mp_third = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T1, T2, T3, T...>`, `T3`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<float, double, long double>;
+using R1 = mp_third<L1>; // long double
+
+using L2 = mp_list<char[1], char[2], char[3], char[4]>;
+using R2 = mp_third<L2>; // char[3]
+```
+_-- end example_ ].
+
+```
+template<class L, class... T> using mp_push_front = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<U...>`, `K<T..., U...>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<double, long double>;
+using R1 = mp_push_front<L1, float>; // tuple<float, double, long double>
+
+using L2 = mp_list<void>;
+using R2 = mp_push_front<L2, char[1], char[2]>; // mp_list<char[1], char[2], void>
+```
+_-- end example_ ].
+
+```
+template<class L, class... T> using mp_push_back = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<U...>`, `K<U..., T...>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<double, long double>;
+using R1 = mp_push_back<L1, float>; // tuple<double, long double, float>
+
+using L2 = mp_list<void>;
+using R2 = mp_push_back<L2, char[1], char[2]>; // mp_list<void, char[1], char[2]>
+```
+_-- end example_ ].
+
+```
+template<class L, template<class...> class Y> using mp_rename = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `Y<T...>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<double, long double>;
+using R1 = mp_rename<L1, pair>; // pair<double, long double>
+
+using L2 = pair<int, float>;
+using R2 = mp_rename<L2, mp_list>; // mp_list<int, float>
+```
+_-- end example_ ].
+
+```
+template<class... L> using mp_append = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is an empty pack, `mp_list<>`. When the elements of `L` are _lists_ of the form `L1<T1...>`, `L2<T2...>`, ..., `Ln<Tn...>`, `L1<T1..., T2..., ..., Tn...>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<double, long double>;
+using L2 = mp_list<int>;
+using L3 = pair<short, long>;
+using L4 = mp_list<>;
+
+using R1 = mp_append<L1, L2, L3, L4>;
+  // tuple<double, long double, int, short, long>
+```
+_-- end example_ ].
+
+```
+template<class L, class T> using mp_replace_front = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<U1, U...>`, `K<T, U...>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = pair<int, float>;
+using R1 = mp_replace_front<L1, void>; // pair<void, float>
+
+using L2 = tuple<float, double, long double>;
+using R2 = mp_replace_front<L2, void>; // tuple<void, double, long double>
+```
+_-- end example_ ].
+
+```
+template<class L, class T> using mp_replace_second = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<U1, U2, U...>`, `K<U1, T, U...>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = pair<int, float>;
+using R1 = mp_replace_second<L1, void>; // pair<int, void>
+
+using L2 = tuple<float, double, long double>;
+using R2 = mp_replace_second<L2, void>; // tuple<float, void, long double>
+```
+_-- end example_ ].
+
+```
+template<class L, class T> using mp_replace_third = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<U1, U2, U3, U...>`, `K<U1, U2, T, U...>`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<float, double, long double>;
+using R1 = mp_replace_third<L1, void>; // tuple<float, double, void>
+
+using L2 = mp_list<char[1], char[2], char[3], char[4]>;
+using R2 = mp_replace_third<L2, void>; // mp_list<char[1], char[2], void, char[4]>;
+```
+_-- end example_ ].
+
+#### Algorithms
+
+```
+template<template<class...> class F, class... L> using mp_transform = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is an empty pack, causes a substitution failure.
+  When the elements of `L` are _lists_ of the form `L1<T1...>`, `L2<T2...>`, ..., `Ln<Tn...>`, `L1<F<T1, T2, ..., Tn>...>`.
+  Otherwise, causes a substitution failure.
+_Remarks:_:: When not all _lists_ are of the same size, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<void, int, float>;
+using L2 = mp_list<void, int, float>;
+
+using R1 = mp_transform<add_pointer_t, L1>; // tuple<void*, int*, float*>
+using R2 = mp_all<mp_transform<is_same, L1, L2>>; // mp_true
+
+template<class T1, class T2> using eq = mp_bool<T1::value == T2::value>;
+
+using L3 = std::tuple<mp_int<1>, mp_int<2>, mp_int<3>>;
+using L4 = mp_list<mp_size_t<1>, mp_size_t<2>, mp_size_t<3>>;
+
+using R3 = mp_all<mp_transform<eq, L3, L4>>; // mp_true
+
+template<class L, class V> using mp_fill =
+  mp_transform_q<mp_bind<mp_identity_t, V>, L>;
+```
+_-- end example_ ].
+
+```
+template<template<class...> class P, template<class...> class F, class... L>
+  using mp_transform_if = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is an empty pack, causes a substitution failure.
+  When the elements of `L` are _lists_ of the form `L1<T1...>`, `L2<T2...>`, ..., `Ln<Tn...>`,
+  `L1<mp_if<P<T1, T2, ..., Tn>, T1, F<T1, T2, ..., Tn>>...>`.
+  Otherwise, causes a substitution failure.
+_Remarks:_:: When not all _lists_ are of the same size, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<void, int, float, void, int>;
+using L2 = mp_list<char[1], char[2], char[3], char[4], char[5]>;
+
+template<class T1, class T2> using first_is_void = is_same<T1, void>;
+template<class T1, class T2> using second = T2;
+
+using R1 = mp_transform_if<first_is_void, second, L1, L2>;
+  // tuple<char[1], int, float, char[4], int>
+
+using R2 = mp_transform_if_q<mp_bind<is_same, _1, void>, _2, L1, L2>;
+  // tuple<char[1], int, float, char[4], int>
+
+template<class L, class V, class W> using mp_replace =
+  mp_transform_if_q<mp_bind<is_same, _1, V>, mp_bind<mp_identity_t, W>, L>;
+
+template<class L, size_t I, class W> using mp_replace_at_c =
+  mp_transform_if_q<mp_bind<is_same, _2, mp_size_t<I>>, mp_bind<mp_identity_t, W>,
+    L, mp_iota<mp_size<L>>>;
+```
+_-- end example_ ].
+
+```
+template<class L, class V> using mp_fill = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<V, V, ..., V>`, with the result having the same size as `L`. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<void, int, float>;
+using R1 = mp_fill<L1, double>; // tuple<double, double, double>
+
+using L2 = pair<int, float>;
+using R2 = mp_fill<L2, void>; // pair<void, void>
+```
+_-- end example_ ].
+
+```
+template<class L, class V> using mp_count = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_, `mp_size_t<N>`, where `N` is the number of elements of `L` same as `V`. Otherwise, causes a substitution failure.
+
+```
+template<class L, template<class...> class P> using mp_count_if = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_, `mp_size_t<N>`, where `N` is the number of elements `T` of `L` for which `mp_to_bool<P<T>>` is `mp_true`. Otherwise, causes a substitution failure.
+
+```
+template<class L, size_t N> using mp_repeat_c = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where the pack `U...` is `T...` repeated `N` times. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<int>;
+using R1 = mp_repeat_c<L1, 3>; // tuple<int, int, int>
+
+using L2 = pair<int, float>;
+using R2 = mp_repeat_c<L2, 1>; // pair<int, float>
+
+using L3 = mp_list<int, float>;
+using R3 = mp_repeat_c<L3, 2>; // mp_list<int, float, int, float>
+
+using L4 = mp_list<int, float, double>;
+using R4 = mp_repeat_c<L4, 0>; // mp_list<>
+```
+_-- end example_ ].
+
+```
+template<template<class...> class F, class... L> using mp_product = /*see below*/;
+```
+[horizontal]
+_Effects:_::
+ `mp_product<F, L1<T1...>, L2<T2...>, ..., Ln<Tn...>>` evaluates `F<U1, U2, ..., Un>` for values `Ui` taken from
+  the Cartesian product of the lists, as if the elements `Ui` are formed by `n` nested loops, each traversing `Li`.
+  It returns a list of the form `L1<V...>` containing the results of the application of `F`, in order.
+_Remarks:_:: When the elements of `L` aren't _lists_, or when `L` is an empty pack, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = tuple<short, int, long>;
+using L2 = mp_list<float, double>;
+
+using R1 = mp_product<pair, L1, L2>;
+  // tuple<
+  //   pair<short, float>, pair<short, double>,
+  //   pair<int, float>, pair<int, double>,
+  //   pair<long, float>, pair<long, double>
+  // >
+```
+_-- end example_ ].
+
+```
+template<class L, size_t N> using mp_drop_c = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>` with at least `N` elements, `K<U...>`, where the pack `U...` is `T...` with its first `N` elements removed. Otherwise, causes a substitution failure.
+
+```
+template<class S> using mp_from_sequence = /*see below*/
+```
+[horizontal]
+_Returns:_:: When `S` is of the form `template<class T, T... I> class`, `mp_list<integral_constant<T, I>...>`. Otherwise, causes a substitution failure.
+[ _Note:_ Types of this form are produced by `make_integer_sequence`. _--end note_ ]
+
+```
+template<class L, size_t I> using mp_at_c = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>` with at least `I+1` elements, the element of `T...` at zero-based index `I`. Otherwise, causes a substitution failure.
+
+```
+template<class L, size_t N> using mp_take_c = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>` with at least `N` elements, `K<U...>`, where the pack `U...` consists of the first `N` elements of `T...`. Otherwise, causes a substitution failure.
+
+```
+template<class L, class V, class W> using mp_replace = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where the pack `U...` is `T...` with all `V` elements replaced with `W`. Otherwise, causes a substitution failure.
+
+```
+template<class L, template<class...> class P, class W> using mp_replace_if = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where the pack `U...` is `T...` with all elements `U` for which `mp_to_bool<P<U>>` is `mp_true` replaced with `W`. Otherwise, causes a substitution failure.
+
+```
+template<class L, size_t I, class W> using mp_replace_at_c = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>` with at least `I+1` elements, `K<U...>`, where `U...` is `T...` with the element at zero-based index `I` replaced with `W`. Otherwise, causes a substitution failure.
+
+```
+template<class L, template<class...> class P> using mp_copy_if = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where the pack `U...` consists of those elements `V` of `T...` for which `mp_to_bool<P<V>>` is `mp_true`, in their original order. Otherwise, causes a substitution failure.
+
+```
+template<class L, class V> using mp_remove = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where the pack `U...` is `T...` with all `V` elements removed. Otherwise, causes a substitution failure.
+_Remarks:_:: The order of the remaining elements is preserved.
+
+```
+template<class L, template<class...> class P> using mp_remove_if = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where the pack `U...` is `T...` with all elements `V`, for which `mp_to_bool<P<V>>` is `mp_true`, removed. Otherwise, causes a substitution failure.
+_Remarks:_:: The order of the remaining elements is preserved.
+
+```
+template<class L, template<class...> class P> using mp_partition = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<K<U1...>, K<U2...>>`, where `U1...` consists of the elements `V` of `T...` for which `mp_to_bool<P<V>>` is `mp_true`, and `U2...` consists of the remaining elements of `T...`. Otherwise, causes a substitution failure.
+_Remarks:_:: The order of the elements is preserved.
+
+```
+template<class L, template<class...> class P> using mp_sort = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where `U...` consists of the elements of `T...` sorted according to the strict weak ordering `mp_to_bool<P<T1, T2>>`. Otherwise, causes a substitution failure.
+_Remarks:_:: When `mp_to_bool<P<T1, T2>>` is not a strict weak ordering over the elements of `T...`, the program remains well-formed, but the result of `mp_sort` is unspecified.
+
+[ _Example:_
+```
+using L1 = mp_list<ratio<1,2>, ratio<1,4>, ratio<1,3>>;
+using R1 = mp_sort<L1, ratio_less>; // mp_list<ratio<1,4>, ratio<1,3>, ratio<1,2>>
+
+using L2 = pair<mp_size_t<0>, mp_int<-1>>;
+using R2 = mp_sort<L2, mp_less>; // pair<mp_int<-1>, mp_size_t<0>>
+```
+_-- end example_ ].
+
+```
+template<class L, size_t I, template<class...> class P> using mp_nth_element_c =
+  /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>` with at least `I+1` elements, `mp_at_c<mp_sort<L, P>, I>`. Otherwise, causes a substitution failure.
+_Remarks:_:: `mp_nth_element_c` is not required to evaluate the exact expression `mp_at_c<mp_sort<L, P>, I>`.
+
+```
+template<class L, template<class...> class P> using mp_min_element = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `mp_fold<mp_rest<L>, mp_first<L>, F>`, where `F<T, U>` returns `mp_if<P<T, U>, T, U>`.
+
+```
+template<class L, template<class...> class P> using mp_max_element = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `mp_fold<mp_rest<L>, mp_first<L>, F>`, where `F<T, U>` returns `mp_if<P<U, T>, T, U>`.
+
+```
+template<class L, class V> using mp_find = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `mp_size_t<I>`, where `I` is the zero-based index of the first occurrence of `V` in `T...`. Otherwise, causes a substitution failure.
+_Remarks:_:: When `V` does not appear in `T...`, the result is `mp_size<L>`.
+
+```
+template<class L, template<class...> class P> using mp_find_if = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `mp_size_t<I>`, where `I` is the zero-based index of the first element `V` in `T...` for which `mp_to_bool<P<V>>` is `mp_true`. Otherwise, causes a substitution failure.
+_Remarks:_:: When such an element does not appear in `T...`, the result is `mp_size<L>`.
+
+```
+template<class L> using mp_reverse = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where `U...` are the elements of `T...` in reverse order. Otherwise, causes a substitution failure.
+
+[ _Example:_
+```
+using L1 = mp_list<int, void, float>;
+using R1 = mp_reverse<L1>; // mp_list<float, void, int>
+
+using L2 = pair<int, float>;
+using R2 = mp_reverse<L2>; // pair<float, int>
+```
+_-- end example_ ].
+
+```
+template<class L, class V, template<class...> class F> using mp_fold = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `F< F< F< F<V, T1>, T2>, ...>, Tn>`, where `Ti` are the elements of `T...`. Otherwise, causes a substitution failure.
+_Remarks:_:: When `T...` is an empty pack, the result is `V`.
+
+[ _Example:_
+```
+using L1 = mp_list<ratio<1,8>, ratio<1,4>, ratio<1,2>>;
+using R1 = mp_fold<L1, ratio<0,1>, ratio_add>; // ratio<7,8>
+```
+_-- end example_ ].
+
+```
+template<class L, class V, template<class...> class F> using mp_reverse_fold =
+  /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `F<T1, F<T2, F<..., F<Tn, V>>>>`, where `Ti` are the elements of `T...`. Otherwise, causes a substitution failure.
+_Remarks:_:: When `T...` is an empty pack, the result is `V`.
+
+```
+template<class L> using mp_unique = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `L` is a _list_ of the form `K<T...>`, `K<U...>`, where `U...` is `T...` with the duplicate elements removed. Otherwise, causes a substitution failure.
+_Remarks:_:: The order of elements is preserved.
+
+```
+template<class L, class F> constexpr F mp_for_each(F&& f);
+```
+[horizontal]
+_Effects:_:: Calls `f` with `T()` for each element `T` of the _list_ `L`, in order.
+_Returns:_:: `std::forward<F>(f)`.
+_Remarks:_:: When `L` is not a _list_, the program is ill-formed.
+
+[ _Example:_
+```
+template<class... T> void print( std::tuple<T...> const & tp )
+{
+    std::size_t const N = sizeof...(T);
+
+    mp_for_each<mp_iota_c<N>>( [&]( auto I ){
+
+        // I is mp_size_t<0>, mp_size_t<1>, ..., mp_size_t<N-1>
+
+        std::cout << std::get<I>(tp) << std::endl;
+
+    });
+}
+```
+_-- end example_ ].
+
+```
+template<size_t N, class F>
+  constexpr auto mp_with_index(size_t i, F&& f)
+    -> decltype(declval<F>()(declval<mp_size_t<0>>()));
+```
+[horizontal]
+_Requires:_:: `i` < `N`.
+_Returns:_:: `std::forward<F>(f)(mp_size_t<I>())`, where `I` == `i`.
+
+[ _Example:_
+```
+template<class... T> void print( std::variant<T...> const& v )
+{
+    mp_with_index<sizeof...(T)>( v.index(), [&]( auto I ) {
+
+        // I is mp_size_t<v.index()> here
+
+        std::cout << std::get<I>( v ) << std::endl;
+
+    });
+}
+```
+_-- end example_ ].
+
+```
+template<class N, class F>
+  constexpr auto mp_with_index(size_t i, F&& f)
+    -> decltype(declval<F>()(declval<mp_size_t<0>>()));
+```
+[horizontal]
+_Returns:_:: `mp_with_index<N::value>(i, f)`.
+
+#### Set Operations
+
+```
+template<class S> using mp_is_set = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `S` is a _list_ of the form `L<T...>` and all elements of `T...` are distinct, `mp_true`. Otherwise, `mp_false`.
+
+```
+template<class S, class V> using mp_set_contains = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `S` is a _list_ of the form `L<T...>`, `mp_true` when `V` occurs in `T...`, else `mp_false`. Otherwise, causes a substitution failure.
+_Remarks:_:: When `T...` contains duplicates, the program is ill-formed.
+
+```
+template<class S, class... T> using mp_set_push_back = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `S` is a _list_ of the form `L<U...>`, `L<U..., V...>`, where `V...` are the elements of `T...` that do not occur in `U...`. Otherwise, causes a substitution failure.
+_Remarks:_:: The order of the appended elements is preserved. When `U...` contains duplicates, the program is ill-formed.
+
+```
+template<class S, class... T> using mp_set_push_front = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `S` is a _list_ of the form `L<U...>`, `L<V..., U...>`, where `V...` are the elements of `T...` that do not occur in `U...`. Otherwise, causes a substitution failure.
+_Remarks:_:: The order of the prepended elements is preserved. When `U...` contains duplicates, the program is ill-formed.
+
+#### Map Operations
+
+A type `M` is a _map_ when
+
+* `M` is a _list_, of the form `L<T...>`;
+* All elements of `T...` are _lists_ of at least one element, of the form `Li<Ui, Vi...>`;
+* All `Ui` are distinct types.
+
+```
+template<class M> using mp_is_map = /*see below*/;
+```
+[horizontal]
+_Returns:_:: When `M` is a _map_, `mp_true`. Otherwise, `mp_false`.
+
+```
+template<class M, class K> using mp_map_find = /*see below*/;
+```
+[horizontal]
+_Returns:_:: Given `M` of the form `L<T...>`, if `T...` contains an element `U` such that `first<U>` is `K`, `U`, otherwise `void`.
+_Remarks:_:: When `M` is not a _map_, the program is ill-formed.
+
+```
+template<class M, class T> using mp_map_replace = /*see below*/;
+```
+[horizontal]
+_Returns:_:: Given `M` of the form `L<U...>`, if `U...` contains an element `V` such that `first<V>` is `first<T>`, `L<W...>`, where `W...` is `U...` with `V` replaced with `T`, otherwise `L<U..., T>`.
+_Remarks:_:: When `M` is not a _map_, the program is ill-formed.
+
+```
+template<class M, class T, template<class...> class F> using mp_map_update = /*see below*/;
+```
+[horizontal]
+_Returns:_:: Given `M` of the form `L<U...>`, if `U...` contains an element `K<V1, V...>` such that `V1` is `first<T>`, `L<W...>`, where `W...` is `U...` with `K<V1, V...>` replaced with `K<V1, F<V1, V...>>`, otherwise `L<U..., T>`.
+_Remarks:_:: When `M` is not a _map_, the program is ill-formed.
+
+[ _Example:_
+```
+template<class T, class U> using inc2nd = mp_int<U::value + 1>;
+
+template<class M, class T> using count_types =
+    mp_map_update<M, pair<T, mp_int<1>>, inc2nd>;
+
+using L1 = mp_list<float, char, float, float, float, float, char, float>;
+
+using R1 = mp_fold<L1, tuple<>, count_types>;
+// tuple<pair<float, mp_int<6>>, pair<char, mp_int<2>>>
+```
+_-- end example_ ].
+
+```
+template<class M, class K> using mp_map_erase = /*see below*/;
+```
+[horizontal]
+_Returns:_:: Given `M` of the form `L<T...>`, if `T...` contains an element `U` such that `first<U>` is `K`, `L<V...>`, where `V...` is `T...` with `U` removed, otherwise `M`.
+_Remarks:_:: When `M` is not a _map_, the program is ill-formed.
+
+#### Helper Metafunctions
+
+```
+template<class... T> using mp_and = /*see below*/;
+```
+[horizontal]
+_Effects:_::
+  Applies `mp_to_bool` to the types in `T...`, in order. If the result of an application is `mp_false`,
+  returns `mp_false`. If the application causes a substitution failure, returns `mp_false`. If all results are `mp_true`,
+  returns `mp_true`.
+_Remarks:_:: `mp_and<>` is `mp_true`.
+
+[ _Example:_
+```
+using R1 = mp_and<mp_true, mp_true>;   // mp_true
+using R2 = mp_and<mp_false, void>;     // mp_false, void is not reached
+using R3 = mp_and<mp_false, mp_false>; // mp_false
+using R4 = mp_and<void, mp_true>;      // mp_false (!)
+```
+_-- end example_ ].
+
+```
+template<class... T> using mp_all = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `mp_bool<(static_cast<bool>(T::value) && ...)>`.
+_Remarks:_:: `mp_all<>` is `mp_true`.
+
+[ _Example:_
+```
+using R1 = mp_all<mp_true, mp_true>;   // mp_true
+using R2 = mp_all<mp_false, void>;     // ill-formed
+using R3 = mp_all<mp_false, mp_false>; // mp_false
+using R4 = mp_all<void, mp_true>;      // ill-formed
+```
+_-- end example_ ].
+
+```
+template<class... T> using mp_or = /*see below*/;
+```
+[horizontal]
+_Effects:_::
+  Applies `mp_to_bool` to the types in `T...`, in order. If the result of an application is `mp_true`,
+  returns `mp_true`. If all results are `mp_false`, returns `mp_false`.
+_Remarks:_:: `mp_or<>` is `mp_false`.
+
+[ _Example:_
+```
+using R1 = mp_or<mp_true, mp_false>;   // mp_true
+using R2 = mp_or<mp_true, void>;       // mp_true, void is not reached
+using R3 = mp_or<mp_false, mp_false>;  // mp_false
+using R4 = mp_or<void, mp_true>;       // ill-formed
+```
+_-- end example_ ].
+
+```
+template<class... T> using mp_any = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `mp_bool<(static_cast<bool>(T::value) || ...)>`.
+_Remarks:_:: `mp_any<>` is `mp_false`.
+
+[ _Example:_
+```
+using R1 = mp_any<mp_true, mp_false>;  // mp_true
+using R2 = mp_any<mp_true, void>;      // ill-formed
+using R3 = mp_any<mp_false, mp_false>; // mp_false
+using R4 = mp_any<void, mp_true>;      // ill-formed
+```
+_-- end example_ ].
+
+```
+template<class... T> using mp_same = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `mp_true` when all types in `T...` are the same, `mp_false` otherwise.
+_Remarks:_:: `mp_same<>` is `mp_true`.
+
+```
+template<class... T> using mp_plus = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `integral_constant<V, v>`, where `v` is `(T::value + ... + 0)` and `V` is the type of `v`.
+_Remarks:_:: `mp_plus<>` is `mp_int<0>`.
+
+```
+template<class T1, class T2> using mp_less = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `mp_true` when the numeric value of `T1::value` is less than the numeric value of `T2::value`, `mp_false` otherwise.
+
+[ _Note:_ `mp_less<T1, T2>` is not necessarily the same as `mp_less<(T1::value < T2::value)>` when comparing between signed and unsigned types;
+`-1 < 1u` is `false`, but `mp_less<mp_int\<-1>, mp_size_t<1>>` is `mp_true`. _-- end note_ ]
+
+#### Bind
+
+```
+template<size_t I> struct mp_arg
+{
+  template<class... T> using fn = mp_at_c<mp_list<T...>, I>;
+};
+```
+
+```
+template<template<class...> class F, class... T> struct mp_bind
+{
+  template<class... U> using fn = /*see below*/;
+};
+```
+
+```
+template<class... U> using fn = /*see below*/;
+```
+[horizontal]
+_Returns:_:: `F<V...>`, where `V...` is `T...` with the elements `W` that are instantiations of `mp_arg` or `mp_bind` replaced with `typename W::template fn<U...>`.
+
+```
+template<template<class...> class F, class... T> struct mp_bind_front
+{
+  template<class... U> using fn = typename mp_defer<F, T..., U...>::type;
+};
+```
+
+```
+template<template<class...> class F, class... T> struct mp_bind_back
+{
+  template<class... U> using fn = typename mp_defer<F, U..., T...>::type;
+};
+```
+
+--
