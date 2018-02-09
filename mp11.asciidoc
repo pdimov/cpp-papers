@@ -4,7 +4,7 @@ Peter Dimov <pdimov@pdimov.com>
 
 [horizontal]
 Document Number:: DxxxxR0
-Date:: 2018-02-07
+Date:: 2018-02-09
 Project:: Programming Language C++
 Audience:: Library Evolution Working Group
 Summary:: This paper proposes adding support for type-based metaprogramming to the standard library, based on Boost.Mp11.
@@ -12,6 +12,30 @@ Summary:: This paper proposes adding support for type-based metaprogramming to t
 toc::[]
 
 ## Overview
+
+This paper proposes adding support for type-based metaprogramming to the standard library, based on the Boost library http://boost.org/libs/mp11[Mp11]
+(itself based on the article http://www.boost.org/libs/mp11/doc/html/simple_cxx11_metaprogramming.html["Simple {cpp} metaprogramming"] and
+http://www.boost.org/libs/mp11/doc/html/simple_cxx11_metaprogramming_2.html[its sequel]).
+
+The fundamental data structure on which the proposed algorithms operate is the _list_, an instantiation of a class template whose parameters are all
+types. The library does not require or prefer a specific list type. While a canonical `mp_list` is supplied, its use is not mandatory; all operations
+and algorithms support other lists such as `std::tuple`, `std::variant` or even `std::pair` (when there is no need to add or remove elements).
+
+For example, the algorithm for removing the duplicate elements of a list, `mp_unique`, can be applied directly to `std::variant<int, float, int, double>`,
+with the result of `mp_unique<std::variant<int, float, int, double>>` being `std::variant<int, float, double>`.
+
+Operations that need to transform types take _metafunctions_, alias or class templates matching `template<class...> class F`. `std::add_pointer_t`, for
+instance, is a metafunction and can be used to turn a list of types `L` into a list to pointers to those types by way of `mp_transform<std::add_pointer_t,
+L>`. To take a specific example, the result of `mp_transform<std::add_pointer_t, std::pair<int, float>>` is `std::pair<int*, float*>`.
+
+Lists are valid metafunctions. `mp_transform<std::pair, std::tuple<int, float, double>, std::tuple<char[1], char[2], char[3]>>` results in the transposition
+`std::tuple<std::pair<int, char[1]>, std::pair<float, char[2]>, std::pair<double, char[3]>>`.
+
+_Quoted metafunctions_ are types with a public nested metafunction member `fn`. All operations and algorithms that take a metafunction
+have a corresponding operation or algorithm (with a `_q` suffix) taking a quoted metafunction. Compared to metafunctions, quoted metafunctions have the
+advantage of being types; this allows their being returned from operations or algorithms (such as `mp_bind`) and their being stored into lists.
+
+`mp_quote<F>` turns the metafunction `F` into a quoted metafunction (`Qf`). `Qf::template fn` does the opposite.
 
 ## Motivation
 
