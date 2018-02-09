@@ -1224,4 +1224,14 @@ template<template<class...> class F, class... T> struct mp_bind_back
 };
 ```
 
+## Differences with Mp11
+
+The two-argument form of `mp_if` has been removed; it's equivalent to `std::enable_if_t` and is only present in Mp11 because `enable_if_t` requires {cpp}14.
+
+`mp_void` has been removed; it's equivalent to `std::void_t` and is supplied in Mp11 because `void_t` requires {cpp}17.
+
+Mp11's integer sequences are already part of {cpp}14.
+
+Mp11's tuple operations are either (`tuple_apply`, `construct_from_tuple`) already part of {cpp}17, or (`tuple_for_each`) out of scope and potentially a subject of a separate paper.
+
 --
