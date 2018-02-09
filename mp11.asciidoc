@@ -327,14 +327,14 @@ _-- end example_ ].
 template<template<class...> class F, class... T> using mp_valid = /*see below*/;
 ```
 [horizontal]
-_Returns:_:: `mp_true` when `F<T...>` is a valid expression, `mp_false` when `F<T...>` causes a substitution failure.
+_Returns:_:: `mp_true` when `F<T...>` is valid, `mp_false` when `F<T...>` causes a substitution failure.
 
 ```
 template<template<class...> class F, class... T> using mp_defer = /*see below*/;
 ```
 [horizontal]
 _Returns:_::
-* when `F<T...>` is a valid expression,
+* when `F<T...>` is valid,
 +
 [subs=+quotes]
 ```
@@ -368,11 +368,45 @@ template<template<class...> class F> struct mp_quote_trait
 
 #### List Operations
 
+A _list_ is an instantiation of a class template whose parameters are all types.
+
+[ _Note:_ `tuple<int, float>` is a _list_, as are `tuple<>` and `pair<int, float>`. So are `unique_ptr<int>` and `string`. _-- end note_ ]
+
+A _list_ `L` is said to be of the form `K<T...>` when, given the hypothetical declarations
+
+```
+template<class T> struct X;
+template<template<class...> class K, class... T> struct X<K<T...>>;
+```
+
+`X<L>` chooses the partial specialization with appropriate `K` and `T...`. (The elements of `T...` are said to be the elements of `L`.)
+
+[ _Note:_ The elements of `unique_ptr<int>` are `int` and `default_delete<int>`. The elements of `string` are `char`, `char_traits<char>`, `allocator<char>`. _-- end note_ ]
+
+Similarly, a _list_ `L` is said to be of the form `K<T1, T...>` when, given the hypothetical declarations
+
+```
+template<class T> struct X;
+template<template<class...> class K, class T1, class... T> struct X<K<T1, T...>>;
+```
+
+`X<L>` chooses the partial specialization with appropriate `K`, `T1` and `T...`.
+
+A variadic _list_ is an instantiation of a template of the form `template<class...> class L`. A fixed-arity _list_ is an instantiation of a template of the form `template<class T1, class T2, ..., class Tn> class L`.
+
+As a general rule, operations and algorithms that accept _lists_ and do not need to instantiate a _list_ with the same _template-name_, but with a different number of arguments, work on fixed-arity _lists_.
+
+[ _Note:_ For example, `mp_size`, `mp_front`, `mp_replace_front`, `mp_transform_if`, `mp_reverse`, `mp_sort` work on fixed-arity _lists_. `mp_pop_front`, `mp_insert`, `mp_remove_if`, `mp_partition` do not. _-- end note_ ]
+
+The behavior of operations and algorithms that do not work on fixed-arity _lists_ is unspecified if the argument is an instantiation of a class template that has default arguments, such as `template<class T1 = void, class T2 = void, ..., class Tn = void> class L`.
+
+[ _Note:_ For such a _list_ `L`, `mp_size<L>` remains constant after operations that would ordinarily remove elements, such as `mp_pop_front<L>`. This causes infinite recursion in recursive algorithm implementations. _-- end note_ ]
+
 ```
 template<class L> using mp_is_list = /*see below*/;
 ```
 [horizontal]
-_Returns:_:: `mp_true` when `L` is a _list_ (an instantiation of a class template whose parameters are all types), `mp_false` otherwise.
+_Returns:_:: `mp_true` when `L` is a _list_, `mp_false` otherwise.
 
 ```
 template<class L> using mp_size = /*see below*/;
@@ -821,7 +855,7 @@ template<class L, size_t I, template<class...> class P> using mp_nth_element_c =
 ```
 [horizontal]
 _Returns:_:: When `L` is a _list_ of the form `K<T...>` with at least `I+1` elements, `mp_at_c<mp_sort<L, P>, I>`. Otherwise, causes a substitution failure.
-_Remarks:_:: `mp_nth_element_c` is not required to evaluate the exact expression `mp_at_c<mp_sort<L, P>, I>`.
+_Remarks:_:: `mp_nth_element_c` is not required to evaluate `mp_at_c<mp_sort<L, P>, I>`.
 
 ```
 template<class L, template<class...> class P> using mp_min_element = /*see below*/;
@@ -1127,7 +1161,7 @@ template<class T1, class T2> using mp_less = /*see below*/;
 [horizontal]
 _Returns:_:: `mp_true` when the numeric value of `T1::value` is less than the numeric value of `T2::value`, `mp_false` otherwise.
 
-[ _Note:_ `mp_less<T1, T2>` is not necessarily the same as `mp_less<(T1::value < T2::value)>` when comparing between signed and unsigned types;
+[ _Note:_ `mp_less<T1, T2>` is not necessarily the same as `mp_bool<(T1::value < T2::value)>` when comparing between signed and unsigned types;
 `-1 < 1u` is `false`, but `mp_less<mp_int\<-1>, mp_size_t<1>>` is `mp_true`. _-- end note_ ]
 
 #### Bind
