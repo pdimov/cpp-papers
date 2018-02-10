@@ -39,6 +39,123 @@ advantage of being types; this allows their being returned from operations or al
 
 ## Motivation
 
+[quote,Philip Greenspun]
+____
+Any sufficiently complicated C or Fortran program contains an ad-hoc, informally-specified, bug-ridden, slow implementation of half of Common Lisp.
+____
+
+Greenspun's famous quote is equally true today if we replace "Common Lisp" with "a metaprogramming library". A standard type-based metaprogramming library
+is badly needed by both users and library implementers. The latter includes standard library implementers; the C++17 additions require significant
+amounts of metaprogramming which effectively means that a subset of the facilities proposed therein already need to be present as an implementation detail. (As
+a further example, the https://github.com/ericniebler/range-v3[reference implementation] of the Ranges TS includes a
+https://github.com/ericniebler/range-v3/blob/master/include/meta/meta.hpp[full metaprogramming library].)
+
+To illustrate the challenges users face, let's write the relatively simple function `tp_select(cond, tuple1, tuple2)` that returns the contents of `tuple1`
+when `cond` is `true` and those of `tuple2` otherwise:
+
+```
+template<class Tp1, class Tp2,
+    class R = mp_transform<std::common_type_t, Tp1, Tp2>>
+    R tp_select( bool cond, Tp1 const& tp1, Tp2 const& tp2 )
+{
+    if( cond )
+    {
+        return tp1;
+    }
+    else
+    {
+        return tp2;
+    }
+}
+```
+
+Using language features such as pack expansion, we can sometimes avoid using a library, and this is the case here:
+
+```
+template<class... T1, class... T2,
+    class R = std::tuple<std::common_type_t<T1, T2>...>
+    R tp_select( bool cond, std::tuple<T1...> const& tp1, std::tuple<T2...> const& tp2 )
+{
+    if( cond )
+    {
+        return tp1;
+    }
+    else
+    {
+        return tp2;
+    }
+}
+```
+
+But what if we need `vt_select`, which is the same function, but for variants instead of tuples?
+
+```
+template<class V1, class V2> V1 vt_convert( V2 const& v2 )
+{
+    return mp_with_index<mp_size<V2>>( v2.index(), [&]( auto I ) -> V1
+    {
+        return std::get<I>( v2 );
+    });
+}
+
+template<class V1, class V2,
+    class R = mp_unique<mp_append<V1, V2>>>
+    R vt_select( bool cond, V1 const& v1, V2 const& v2 )
+{
+    if( cond )
+    {
+        return vt_convert<R>( v1 );
+    }
+    else
+    {
+        return vt_convert<R>( v2 );
+    }
+}
+```
+
+As we can see, even relatively trivial tuple or variant manipulations require metaprogramming.
+
+Or consider reflection, which is all about metaprogramming. The canonical type-based reflection proposal by
+Chochlik-Naumann-Sankel states in its overview paper http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0578r1.html[P0578]:
+
+_We assume WG21 will incorporate proper compile-time type lists at some point and consider this a placeholder implementation as well._
+
+This is for instance how one would print the members of a struct:
+
+```
+template<class T> void print( T const& t )
+{
+    using members = reflect::get_data_members_t<reflexpr(T)>;
+    using pointers = mp_transform<reflect::get_pointer, members>;
+
+    mp_for_each<pointers>( [&]( auto pm )
+    {
+        std::cout << t.*pm << std::endl;
+    });
+}
+```
+
+`get_data_members_t` only gives us the direct data members though, not the inherited ones. What if we wanted to print those as well?
+
+```
+template<class T> struct get_all_data_members;
+template<class T> using get_all_data_members_t = typename get_all_data_members<T>::type;
+
+template<class T> struct get_all_data_members
+{
+private:
+
+    using members = reflect::get_data_members_t<T>;
+    using bases = reflect::get_bases_t<T>;
+
+    using inherited_members = mp_apply<mp_append, mp_transform<get_all_data_members_t, bases>>;
+
+public:
+
+    using type = mp_append<members, inherited_members>;
+};
+```
+
 ## Proposed Text
 
 [.navy]#_Add a new subclause in [utilities] with the following contents:_#
