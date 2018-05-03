@@ -1,0 +1,194 @@
+﻿# Allowing Virtual Function Calls in Constant Expressions
+Peter Dimov <pdimov@pdimov.com>, Vassil Vassilev <vvasilev@cern.ch>
+:toc: macro
+
+[horizontal]
+Document Number:: D1064R0
+Date:: 2018-05-03
+Project:: Programming Language C++
+Audience:: Evolution Working Group
+Summary:: This paper proposes allowing virtual function calls in constant expressions.
+
+toc::[]
+
+## Summary
+
+Virtual function calls are currently prohibited in constant expressions. Since
+in a constant expression the dynamic type of the object is required to be known
+(in order to, for example, diagnose undefined behavior in casts), the restriction
+is unnecessary and artificial. We propose the restriction be removed.
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4741.)_#
+
+[.navy]#_Remove the first bullet of 10.1.5 [dcl.constexpr] p3:_#
+
+[.red]#— it shall not be virtual (13.3);#
+
+## Q&A
+
+### Can a `constexpr` virtual function override a non-`constexpr` one?
+
+Yes. This is required when, for instance, the programmer has no control
+over the base class, or when the base virtual function is pure.
+
+### Can a non-`constexpr` virtual function override a `constexpr` one?
+
+Yes.
+
+### What happens when some overriders are `constexpr` and some are not?
+
+The final overrider is selected, as usual, and if it's not `constexpr`, the
+expression is not a constant expression.
+
+## Motivating Example
+
+The standard library provides, in [syserr], a very well-designed framework for
+reporting error codes. This framework is not perfect, and can be enhanced in
+several ways, two of which we'll use to illustrate the motivation for this
+proposal.
+
+First, `error_code` is not `constexpr`-"enabled", and it's useful for it to be
+not just because this would make it usable in constant expressions, but because
+`constexpr`-"enabled" types tend to optimize better, and `error_code` is used
+in performance-sensitive contexts and by performance-sensitive audiences.
+
+Adding the necessary `constexpr` qualifiers to `error_code` and making it a
+literal type isn't hard, as it's basically a pair of an integer and a pointer.
+We end up with
+
+```
+class error_code
+{
+private:
+
+    int val_;
+    const error_category* cat_;
+
+public:
+
+    constexpr error_code() noexcept;
+    constexpr error_code(int val, const error_category& cat) noexcept;
+    template<class ErrorCodeEnum>
+    constexpr error_code(ErrorCodeEnum e) noexcept;
+
+    constexpr void assign(int val, const error_category& cat) noexcept;
+    template<class ErrorCodeEnum>
+    constexpr error_code& operator=(ErrorCodeEnum e) noexcept;
+    constexpr void clear() noexcept;
+
+    constexpr int value() const noexcept;
+    constexpr const error_category& category() const noexcept;
+    constexpr explicit operator bool() const noexcept;
+
+    error_condition default_error_condition() const noexcept;
+    string message() const;
+};
+```
+
+A second enhancement we might wish to pursue is to address the limitation of
+`error_code` of hardcoding zero as the success value. There are error categories
+that consider all nonnegative values successful, and there are (admittedly very rare)
+others in which zero is a failure. To address this, we might delegate the
+responsibility of deciding whether a value represents a success to the error
+category, by adding a virtual member function `failed` to it:
+
+```
+class error_category
+{
+public:
+
+    // ...
+
+    virtual bool failed(int ev) const noexcept;
+
+    // ...
+};
+```
+
+Then we add a member function `failed` to `error_code`:
+
+```
+class error_code
+{
+public:
+
+    // ...
+
+    bool failed() const { return cat_->failed(val_); }
+
+    // ...
+};
+```
+
+Unfortunately, we can't pursue both of these at the same time. Since `error_code::failed`
+calls the virtual `error_category::failed`, it can't be `constexpr`. We are forced to
+choose, and there is no inherent reason for this choice being forced on us.
+
+With this proposal, we just declare both `failed` functions as `constexpr` and everything
+sorts itself out.
+
+## Implementability
+
+We have produced a fairly trivial patch for Clang that is successfully able
+to compile the following example:
+
+```
+struct X1
+{
+    virtual int f() const = 0;
+};
+
+struct X2: public X1
+{
+    constexpr virtual int f() const { return 2; }
+};
+
+struct X3: public X2
+{
+    virtual int f() const { return 3; }
+};
+
+struct X4: public X3
+{
+    constexpr virtual int f() const { return 4; }
+};
+
+constexpr int (X1::*pf)() const = &X1::f;
+
+constexpr X2 x2;
+static_assert( x2.f() == 2 );
+static_assert( (x2.*pf)() == 2 );
+
+constexpr X1 const& r2 = x2;
+static_assert( r2.f() == 2 );
+static_assert( (r2.*pf)() == 2 );
+
+constexpr X1 const* p2 = &x2;
+static_assert( p2->f() == 2 );
+static_assert( (p2->*pf)() == 2 );
+
+constexpr X4 x4;
+static_assert( x4.f() == 4 );
+static_assert( (x4.*pf)() == 4 );
+
+constexpr X1 const& r4 = x4;
+static_assert( r4.f() == 4 );
+static_assert( (r4.*pf)() == 4 );
+
+constexpr X1 const* p4 = &x4;
+static_assert( p4->f() == 4 );
+static_assert( (p4->*pf)() == 4 );
+```
+
+At time of writing, our proof of concept does not yet handle virtual calls
+in constructors and destructors properly, but we expect extending it to be
+correct in this area to not pose any significant problems.
+
+## Further Work
+
+[expr.const] p2 disallows `dynamic_cast` and `typeid` on polymorhpic types.
+These restrictions are also unnecessary for the same reason; compilers already
+maintain the dynamic type information required to resolve them. It would be
+a natural extension of this proposal to eliminate those two restrictions as well.
