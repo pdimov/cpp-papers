@@ -186,9 +186,41 @@ At time of writing, our proof of concept does not yet handle virtual calls
 in constructors and destructors properly, but we expect extending it to be
 correct in this area to not pose any significant problems.
 
+On the other hand, covariant returns appear to work under our implementation,
+even though we have made no specific effort, as evidenced by the following
+example:
+
+```
+struct X1
+{
+    constexpr virtual X1 const* f() const { return this; }
+};
+
+struct Y
+{
+    int m = 0;
+};
+
+struct X2: public Y, public X1
+{
+    constexpr virtual X2 const* f() const { return this; }
+};
+
+constexpr X1 x1;
+static_assert( x1.f() == &x1 );
+
+constexpr X2 x2;
+constexpr X1 const& r2 = x2;
+static_assert( r2.f() == &r2 );
+```
+
 ## Further Work
 
 [expr.const] p2 disallows `dynamic_cast` and `typeid` on polymorhpic types.
 These restrictions are also unnecessary for the same reason; compilers already
 maintain the dynamic type information required to resolve them. It would be
 a natural extension of this proposal to eliminate those two restrictions as well.
+
+## Acknowledgments
+
+The authors thank Richard Smith for his help.
