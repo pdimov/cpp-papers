@@ -1,0 +1,121 @@
+﻿# Allowing Virtual Destructors to be "Trivial"
+Peter Dimov <pdimov@pdimov.com>
+:toc: macro
+
+[horizontal]
+Document Number:: DxxxxR0
+Date:: 2018-05-04
+Project:: Programming Language C++
+Audience:: Evolution Working Group
+Summary:: This proposal removes the requirement for literal types to not have virtual destructors
+
+toc::[]
+
+## Motivation
+
+Virtual destructors are currently non-trivial, by definition ([class.dtor] p6). This is overly
+strict.
+
+The informal meaning of trivial here is "has no observable effects and can be omitted",
+but there are two contexts in which this question can be asked. First, whether the destructor
+itself has no observable effects; second, whether an expression invoking the destructor (such as
+`p\->~X()`) has no observable effects.
+
+In the first case, it doesn't matter whether the destructor is virtual; it either has observable
+effects or it doesn't, and its virtuality doesn't change the outcome.
+
+In the second case, it does matter. When `~X` is virtual, the expression may end up invoking a
+derived destructor, and whether `~X` itself has no effects is irrelevant.
+
+Conflating these two meanings creates problems in two places. First, literal types are required
+to have trivial destructors. This needlessly prohibits types with virtual destructors from being
+literal. For example,
+
+```
+struct X1
+{
+    virtual int f() const;
+};
+```
+
+is literal, but
+
+```
+struct X2
+{
+    virtual ~X2() = default;
+    virtual int f() const;
+};
+```
+
+isn't.
+
+Second, it classifies certain destructors as non-trivial even when they satisfy the requirement
+that an expression invoking them has no effects:
+
+```
+struct X3
+{
+    X2 x2;
+};
+```
+
+`~X3` in this example is not virtual and has no effects, but the transitive requirement for `~X2`
+to be trivial renders `~X3` nontrivial as well.
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4741.)_#
+
+[.navy]#_Change 15.4 [class.dtor] p6 as follows:_#
+
+[none]
+* {blank}
++
+--
+A destructor is [.green .underline]#pseudo# trivial if it is not user-provided and if:
+
+[.red .line-through]#— the destructor is not virtual,#
+
+— all of the direct base classes of its class have [.green .underline]#pseudo# trivial destructors, and
+
+— for all of the non-static data members of its class that are of class type (or array thereof), each such
+class has a [.green .underline]#pseudo# trivial destructor.
+
+Otherwise, the destructor is not [.green .underline]#pseudo# trivial.
+--
+
+[.navy]#_Add a new paragraph below the above one:_#
+
+[none]
+* {blank}
++
+--
+[.green]#A destructor is trivial if it is pseudotrivial and it is not virtual.#
+--
+
+[.navy]#_Change 6.7 [basic.type] p10 bullet 10.5.1 as follows:_#
+
+[none]
+* {blank}
++
+--
+— it has a [.green .underline]#pseudo# trivial destructor,
+--
+
+## Example
+
+The standard library provides, in [syserr], a framework for reporting error codes. This
+framework classifies error codes into categories, represented by singleton values of types
+derived from the base class `error_category`.
+
+`error_category`, and types derived from it such as `generic_category`, could easily be made
+literal if not for the fact that `~error_category` is specified as virtual. This precludes
+categories to be made `constexpr` variables, a problem this proposal solves.
+
+The reason for the wish to make categories `constexpr` is subtle. Category equality is
+currently specified as identity comparison, `this == &rhs`. But there are platforms on
+which it's hard to guarantee that all instances of `generic_category` and `system_category`
+have the same address. On such a platform it's better for equality to be content-based rather
+than address-based, for instance by storing an unique identifier in the category, so that all
+`generic_category` instances compare equal.
