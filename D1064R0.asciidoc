@@ -4,7 +4,7 @@ Peter Dimov <pdimov@pdimov.com>, Vassil Vassilev <vvasilev@cern.ch>
 
 [horizontal]
 Document Number:: D1064R0
-Date:: 2018-05-03
+Date:: 2018-05-04
 Project:: Programming Language C++
 Audience:: Evolution Working Group
 Summary:: This paper proposes allowing virtual function calls in constant expressions.
@@ -116,7 +116,7 @@ public:
 
     // ...
 
-    bool failed() const { return cat_->failed(val_); }
+    bool failed() const noexcept { return cat_->failed(val_); }
 
     // ...
 };
@@ -182,13 +182,13 @@ static_assert( p4->f() == 4 );
 static_assert( (p4->*pf)() == 4 );
 ```
 
-At time of writing, our proof of concept does not yet handle virtual calls
+At the time of writing, our proof of concept does not yet handle virtual calls
 in constructors and destructors properly, but we expect extending it to be
 correct in this area to not pose any significant problems.
 
 On the other hand, covariant returns appear to work under our implementation,
-even though we have made no specific effort, as evidenced by the following
-example:
+even though we have made no specific effort to handle them, as evidenced by
+the following example compiling without errors:
 
 ```
 struct X1
@@ -216,7 +216,7 @@ static_assert( r2.f() == &r2 );
 
 ## Further Work
 
-[expr.const] p2 disallows `dynamic_cast` and `typeid` on polymorhpic types.
+[expr.const] p2 disallows `dynamic_cast` and `typeid` on polymorphic types.
 These restrictions are also unnecessary for the same reason; compilers already
 maintain the dynamic type information required to resolve them. It would be
 a natural extension of this proposal to eliminate those two restrictions as well.
