@@ -3,7 +3,7 @@ Peter Dimov <pdimov@pdimov.com>
 :toc: macro
 
 [horizontal]
-Document Number:: DxxxxR0
+Document Number:: D1077R0
 Date:: 2018-05-04
 Project:: Programming Language C++
 Audience:: Evolution Working Group
