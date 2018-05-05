@@ -73,16 +73,16 @@ to be trivial renders `~X3` nontrivial as well.
 * {blank}
 +
 --
-A destructor is [.green .underline]#pseudo# trivial if it is not user-provided and if:
+A destructor is [.green .underline]#quasi-# trivial if it is not user-provided and if:
 
 [.red .line-through]#— the destructor is not virtual,#
 
-— all of the direct base classes of its class have [.green .underline]#pseudo# trivial destructors, and
+— all of the direct base classes of its class have [.green .underline]#quasi-# trivial destructors, and
 
 — for all of the non-static data members of its class that are of class type (or array thereof), each such
-class has a [.green .underline]#pseudo# trivial destructor.
+class has a [.green .underline]#quasi-# trivial destructor.
 
-Otherwise, the destructor is not [.green .underline]#pseudo# trivial.
+Otherwise, the destructor is not [.green .underline]#quasi-# trivial.
 --
 
 [.navy]#_Add a new paragraph below the above one:_#
@@ -91,7 +91,7 @@ Otherwise, the destructor is not [.green .underline]#pseudo# trivial.
 * {blank}
 +
 --
-[.green]#A destructor is trivial if it is pseudotrivial and it is not virtual.#
+[.green]#A destructor is trivial if it is quasi-trivial and it is not virtual.#
 --
 
 [.navy]#_Change 6.7 [basic.type] p10 bullet 10.5.1 as follows:_#
@@ -100,7 +100,7 @@ Otherwise, the destructor is not [.green .underline]#pseudo# trivial.
 * {blank}
 +
 --
-— it has a [.green .underline]#pseudo# trivial destructor,
+— it has a [.green .underline]#quasi-# trivial destructor,
 --
 
 ## Example
