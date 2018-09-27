@@ -1,0 +1,169 @@
+﻿# A non-allocating overload of `error_category::message()`
+Peter Dimov <pdimov@pdimov.com>
+:toc: macro
+
+[horizontal]
+Document Number:: D1197R0
+Date:: 2018-09-27
+Project:: Programming Language C++
+Audience:: Library Evolution Working Group
+Summary:: This paper proposes a non-allocating overload of `std::error_category::message`, modeled after the Glibc-specific `strerror_r` interface.
+
+toc::[]
+
+## Summary
+
+This paper proposes an overload of `std::error_category::message` that copies a message describing the error
+into a caller-supplied buffer, instead of allocating and returning an `std::string`.
+
+The function's interface is modeled after the Glibc-specific `strerror_r` function, as it allows literals to
+be directly returned without a string copy or truncation.
+
+The default `error_category` implementation of the new overload calls the existing `message(ev)` and returns
+the string into the supplied buffer, in order to retain backward compatibility.
+
+## Motivation
+
+The facilities in `<system_error>` are suitable for reporting errors in resource-constrained environments,
+but the function `message`, specified to return an `std::string`, mandates allocation, which may be prohibited.
+
+Therefore, an overload is proposed that returns the message into a caller-supplied buffer.
+
+## Implementability
+
+The proposed changes have been implemented in Boost.System and currently reside on
+https://github.com/boostorg/system[its develop branch]. They are expected to ship in Boost 1.69.
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4762.)_#
+
+[.navy]#_Change [syserr.errcat.overview] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+namespace std {
+  class error_category {
+  public:
+    constexpr error_category() noexcept;
+    virtual ~error_category();
+    error_category& operator=(const error_category&) = delete;
+    virtual const char* name() const noexcept = 0;
+    virtual error_condition default_error_condition(int ev) const noexcept;
+    virtual bool equivalent(int code, const error_condition& condition) const noexcept;
+    virtual bool equivalent(const error_code& code, int condition) const noexcept;
+    virtual string message(int ev) const = 0;
+    [.underline .green]#virtual const char* message(int ev, char* buffer, size_t len) const noexcept;#
+
+    bool operator==(const error_category& rhs) const noexcept;
+    bool operator!=(const error_category& rhs) const noexcept;
+    bool operator< (const error_category& rhs) const noexcept;
+  };
+
+  const error_category& generic_category() noexcept;
+  const error_category& system_category() noexcept;
+}
+```
+
+[.navy]#_Add to [syserr.errcat.virtuals] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#virtual const char* message(int ev, char* buffer, size_t len) const noexcept;#
+```
+[horizontal]
+[.underline .green]#_Effects:_#::
++
+* [.underline .green]#If `len` is 0, returns `buffer`;#
+* [.underline .green]#Otherwise, if `message(ev)` doesn't throw, copies the string returned by `message(ev)` into `buffer`,
+  truncating it to `len-1` characters and adding a null terminator, and returns `buffer`;#
+* [.underline .green]#Otherwise, either returns a pointer to an implementation-defined string literal, or copies an
+  implementation-defined message into `buffer`, truncating it to `len-1` characters and adding a null
+  terminator, and returns `buffer`.#
+--
+
+[.navy]#_Add to [syserr.errcat.derived] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#virtual const char* message(int ev, char* buffer, size_t len) const noexcept;#
+```
+[horizontal]
+[.underline .green]#_Effects:_#::
++
+* [.underline .green]#If a character literal that describes `ev` is available, returns a pointer to it;#
+* [.underline .green]#Otherwise, if `len` is 0, returns `buffer`;#
+* [.underline .green]#Otherwise, copies a message describing `ev` into `buffer`, truncating it to `len-1`
+  characters and adding a null terminator, and returns `buffer`.#
++
+[.underline .green]#[_Note:_ `message(ev, nullptr, 0)` is allowed.
+_--end note_]#
++
+[.underline .green]#[_Note:_ If the function returns a pointer distinct from `buffer`,
+the caller may assume that it points to a character literal. _--end note_]#
++
+[.underline .green]#[_Example:_#
++
+```
+const char* my_category::message(int ev, char* buffer, size_t len) const noexcept
+{
+  switch(ev)
+  {
+  case 0: return "no error";
+  case 1: return "voltage out of range";
+  case 2: return "impedance mismatch";
+  case 31:
+  case 32:
+  case 33:
+    std::snprintf(buffer, len, "component %d failure", ev-30);
+    return buffer;
+  default:
+    std::snprintf(buffer, len, "unknown error %d", ev);
+    return buffer;
+  }
+}
+```
++
+[.underline .green]#_--end example:_]#
+--
+
+[.navy]#_Add to [syserr.errcode.observers] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#const char* message(char* buffer, size_t len) const noexcept;#
+```
+[horizontal]
+[.underline .green]#_Returns:_#:: [.underline .green]#`category().message(value(), buffer, len)`.#
+--
+
+[.navy]#_Add to [syserr.errcondition.observers] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#const char* message(char* buffer, size_t len) const noexcept;#
+```
+[horizontal]
+[.underline .green]#_Returns:_#:: [.underline .green]#`category().message(value(), buffer, len)`.#
+--
+
+_-- end_
