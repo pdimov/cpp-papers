@@ -1,0 +1,203 @@
+﻿# Value-based `std::error_category` comparison
+Peter Dimov <pdimov@pdimov.com>
+:toc: macro
+
+[horizontal]
+Document Number:: D1196R0
+Date:: 2018-09-27
+Project:: Programming Language C++
+Audience:: Library Evolution Working Group
+Summary:: This paper proposes that `std::error_category` comparisons should rely on unique 64 bit identifiers, instead of requiring unique addresses for the category objects.
+
+toc::[]
+
+## Summary
+
+This paper proposes the addition of an optional 64 bit identifier to `error_category`, such that two
+instances of the same category may compare equal. When a category does not have an identifier, the
+comparison reverts to address-based, retaining backward compatibility.
+
+## Motivation
+
+In the presence of dynamic libraries without global symbol visibility, it's hard to guarantee that
+category objects are unique. Implementations are already known to use a technique similar to the one
+suggested here to make copies of the standard generic and system categories compare equal even when
+their addresses do not match. This is currently non-conforming, but it's more useful than the behavior
+the standard mandates.
+
+In addition, relying on address-based comparisons makes it impossible to declare category objects
+`constexpr` and makes it impossible to declare `operator<` `constexpr`.
+
+Switching to unique category identifiers solves both problems.
+
+## Design Rationale
+
+The choice of 64 bits for the identifier is motivated by the desire to make it possible for programmers
+to define their own categories without a central authority allocating identifiers. Collisions between 64 bit
+random numbers are rare enough.
+
+The identifiers of the standard generic and system categories have been specified to help portability and
+reproducibility.
+
+`error_category::operator==` compares `rhs.id_` to 0, instead of `this\->id_`, under the assumption that
+in category comparisons, it's more likely for the right hand side to be a known constant, allowing for the
+check to be performed at compile time.
+
+`error_code::operator==` and `error_condition::operator==` are changed to compare the values first, as
+comparing the values is cheaper than comparing the categories (requiring an identifier to be fetched through
+the category pointer.)
+
+## Implementability
+
+The proposed changes have been implemented in Boost.System and are presently on
+https://github.com/boostorg/system[its develop branch]. If all goes well, they will ship in Boost 1.69.
+
+One difference between Boost.System and the proposed text is that the destructor of `boost::system::error_category`
+has been made protected and nonvirtual, enabling category types to be literal and consequently enabling `constexpr`
+category objects. This is expected to be unnecessary for C++20 if https://wg21.link/p1077r0[P1077R0] (or an equivalent)
+is accepted.
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4762 with P1195R0 applied.)_#
+
+[.navy]#_Change [syserr.errcat.overview] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+namespace std {
+  class error_category {
+  [.underline .green]#private:#
+    [.underline .green]#uint64_t id_ = 0; _// exposition only_#
+
+  [.underline .green]#protected:#
+    [.underline .green]#explicit constexpr error_category(uint64_t id) noexcept;#
+
+  public:
+    constexpr error_category() noexcept [.underline .green]#= default()#;
+    virtual ~error_category() = default();
+    error_category& operator=(const error_category&) = delete;
+    virtual const char* name() const noexcept = 0;
+    constexpr virtual error_condition default_error_condition(int ev) const noexcept;
+    constexpr virtual bool equivalent(int code, const error_condition& condition)
+      const noexcept;
+    constexpr virtual bool equivalent(const error_code& code, int condition) const noexcept;
+    virtual string message(int ev) const = 0;
+
+    constexpr bool operator==(const error_category& rhs) const noexcept;
+    constexpr bool operator!=(const error_category& rhs) const noexcept;
+    [.green .underline]#constexpr# bool operator< (const error_category& rhs) const noexcept;
+  };
+
+  constexpr const error_category& generic_category() noexcept;
+  constexpr const error_category& system_category() noexcept;
+}
+```
+
+[.navy]#_Change [syserr.errcat.nonvirtuals] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.red .line-through]#constexpr error_category() noexcept;#
+```
+[horizontal]
+[.red .line-through]#_Effects:_#:: [.red .line-through]#Constructs an object of class error_category.#
+
+[subs=+quotes]
+```
+[.green .underline]#explicit constexpr error_category(uint64_t id) noexcept;#
+```
+[horizontal]
+[.green .underline]#_Effects:_#:: [.green .underline]#Initializes `id_` to `id`.#
+
+[subs=+quotes]
+```
+constexpr bool operator==(const error_category& rhs) const noexcept;
+```
+[horizontal]
+_Returns:_:: [.red .line-through]#`this == &rhs`# [.green .underline]#`rhs.id_ == 0? this == &rhs: id_ == rhs.id_`#.
+
+[subs=+quotes]
+```
+[.green .underline]#constexpr# bool operator<(const error_category& rhs) const noexcept;
+```
+[horizontal]
+_Returns:_::
+[.red .line-through]#`less<const error_category*>()(this, &rhs)`# [.green .underline]#As if:#
++
+```
+if(id_ < rhs.id_)
+{
+  return true;
+}
+
+if(id_ > rhs.id_)
+{
+  return false;
+}
+
+if(rhs.id_ != 0)
+{
+  return false; // equal
+}
+
+return less<const error_category*>()(this, &rhs);
+```
+--
+
+[.navy]#_Change [syserr.errcat.objects] as follows:_#
+
+[none]
+* {blank}
++
+--
+[horizontal]
+_Remarks:_:: The object’s `default_error_condition` and equivalent virtual functions shall behave as
+specified for the class `error_category`. The object’s `name` virtual function shall return a pointer to
+the string `"generic"`. [.green .underline]#The object's `error_category::id_` subobject shall be `0xB2AB117A257EDF0D`.#
+
+[horizontal]
+_Remarks:_:: The object’s equivalent virtual functions shall behave as specified for class `error_category`.
+The object’s `name` virtual function shall return a pointer to the string `"system"`.
+[.green .underline]#The object's `error_category::id_` subobject shall be `0x8FAFD21E25C5E09B`.#
+The object’s `default_error_condition` virtual function shall behave as follows:
+--
+
+[.navy]#_Change [syserr.compare] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+constexpr bool operator==(const error_code& lhs, const error_code& rhs) noexcept;
+```
+[horizontal]
+_Returns:_:: [.red .line-through]#`lhs.category() == rhs.category() && lhs.value() == rhs.value()`# [.green .underline]#`lhs.value() == rhs.value() && lhs.category() == rhs.category()`#.
+
+
+[subs=+quotes]
+```
+constexpr bool operator==(const error_condition& lhs, const error_condition& rhs) noexcept;
+```
+[horizontal]
+_Returns:_:: [.red .line-through]#`lhs.category() == rhs.category() && lhs.value() == rhs.value()`# [.green .underline]#`lhs.value() == rhs.value() && lhs.category() == rhs.category()`#.
+
+[subs=+quotes]
+```
+[.green .underline]#constexpr# bool operator<(const error_code& lhs, const error_code& rhs) noexcept;
+```
+
+[subs=+quotes]
+```
+[.green .underline]#constexpr# bool operator<(const error_condition& lhs, const error_condition& rhs) noexcept;
+```
+--
