@@ -441,4 +441,16 @@ template<class ErrorConditionEnum>
 
 ## Potential Objections
 
-...
+### Immortal Categories
+
+In order for `error_code` to be usable during process exit, some implementations "immortalize" the category
+objects by placement-constructing them so that their destructors are never run. (On Clang, the same effect can
+be achieved by the attribute `[[++clang::no_destroy++]]`.)
+
+It's possible to implement "immortalization" in a `constexpr`-friendly way by using a `union` instead of placement
+`new`, and the aforementioned https://cplusplus.github.io/LWG/issue2992[LWG Issue 2992] has a code snippet that
+shows the technique; but if https://wg21.link/p1077r0[P1077R0] is accepted, making the destructor of `error_category`
+trivial, this shouldn't even be necessary, as the standard category objects will not need destruction at all.
+
+### Duplicate Categories
+
