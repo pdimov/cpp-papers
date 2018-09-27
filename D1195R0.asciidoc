@@ -1,0 +1,444 @@
+﻿# Making <system_error> constexpr
+Peter Dimov <pdimov@pdimov.com>
+:toc: macro
+
+[horizontal]
+Document Number:: D1195R0
+Date:: 2018-09-27
+Project:: Programming Language C++
+Audience:: Library Evolution Working Group
+Summary:: This paper adds `constexpr` to `<system_error>`.
+
+toc::[]
+
+## Summary
+
+This paper proposes the addition of the `constexpr` specifier to `error_category`, `error_code` and `error_condition`,
+as appropriate. That `error_code` needs to be made `constexpr` was first suggested in
+https://cplusplus.github.io/LWG/issue2992[LWG Issue 2992], which was closed as a feature request needing a paper.
+
+## Motivation
+
+### Consistency
+
+Making the facilities provided by `<system_error>` usable in constant expressions is consistent with the general
+trend of making the standard library usable in constant expressions.
+
+### Performance
+
+Error reporting via `error_code` is a good fit for performance sensitive, resource constrained environments, where cycles
+count. Making the functions creating and manipulating `error_code` `constexpr` ensures that they are fully visible to the
+compiler and that they can be performed at compile time, if appropriate. This in practice results in significantly improved
+code generation.
+
+For example, the function
+
+```
+void f( std::error_code & ec )
+{
+    ec.clear();
+}
+```
+
+on one popular implementation results in a call to `_Execute_once` (to initialize the magic static returned by `system_category`),
+whereas with the proposed additions it compiles down to two `mov` instructions.
+
+## Implementability
+
+The suggested additions have largely been implemented and shipped in Boost.System release 1.68. The diffences are as folllows:
+
+- Virtual functions have not been marked `constexpr`, as this requires compiler support for https://wg21.link/p1064r0[P1064R0].
+- The nonvirtual functions that are implemented in terms of virtual calls have not been marked `constexpr`.
+- `error_category::operator==` and `error_category::operator!=` have been implemented as nonmembers, because a literal `error_category`
+  requires compiler support for the not yet accepted https://wg21.link/p1077r0[P1077R0] (or, alternatively, for `constexpr` destructors
+  as in https://wg21.link/p0784r4[P0784R4].
+
+A test demonstrating the functionality is https://github.com/boostorg/system/blob/boost-1.68.0/test/constexpr_test.cpp[available on Github].
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4762.)_#
+
+[.navy]#_Change [system_error.syn] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+class error_category;
+[.underline .green]#constexpr# const error_category& generic_category() noexcept;
+[.underline .green]#constexpr# const error_category& system_category() noexcept;
+```
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+// 18.5.5, comparison functions
+[.underline .green]#constexpr# bool operator==(const error_code& lhs, const error_code& rhs) noexcept;
+[.underline .green]#constexpr# bool operator==(const error_code& lhs, const error_condition& rhs) noexcept;
+[.underline .green]#constexpr# bool operator==(const error_condition& lhs, const error_code& rhs) noexcept;
+[.underline .green]#constexpr# bool operator==(const error_condition& lhs, const error_condition& rhs) noexcept;
+[.underline .green]#constexpr# bool operator!=(const error_code& lhs, const error_code& rhs) noexcept;
+[.underline .green]#constexpr# bool operator!=(const error_code& lhs, const error_condition& rhs) noexcept;
+[.underline .green]#constexpr# bool operator!=(const error_condition& lhs, const error_code& rhs) noexcept;
+[.underline .green]#constexpr# bool operator!=(const error_condition& lhs, const error_condition& rhs) noexcept;
+bool operator< (const error_code& lhs, const error_code& rhs) noexcept;
+bool operator< (const error_condition& lhs, const error_condition& rhs) noexcept;
+```
+
+[.navy]#_Change [syserr.errcat.overview] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+namespace std {
+  class error_category {
+  public:
+    constexpr error_category() noexcept;
+    virtual ~error_category() [.underline .green]#= default()#;
+    error_category& operator=(const error_category&) = delete;
+    virtual const char* name() const noexcept = 0;
+    [.underline .green]#constexpr# virtual error_condition default_error_condition(int ev) const noexcept;
+    [.underline .green]#constexpr# virtual bool equivalent(int code, const error_condition& condition) const noexcept;
+    [.underline .green]#constexpr# virtual bool equivalent(const error_code& code, int condition) const noexcept;
+    virtual string message(int ev) const = 0;
+
+    [.underline .green]#constexpr# bool operator==(const error_category& rhs) const noexcept;
+    [.underline .green]#constexpr# bool operator!=(const error_category& rhs) const noexcept;
+    bool operator< (const error_category& rhs) const noexcept;
+  };
+
+  [.underline .green]#constexpr# const error_category& generic_category() noexcept;
+  [.underline .green]#constexpr# const error_category& system_category() noexcept;
+}
+```
+
+[.navy]#_Change [syserr.errcat.virtuals] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.red .line-through]#virtual ~error_category();#
+```
+[horizontal]
+[.red .line-through]#_Effects:_#:: [.red .line-through]#Destroys an object of class error_category.#
+
+[subs=+quotes]
+```
+[.underline .green]#constexpr# virtual error_condition default_error_condition(int ev) const noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# virtual bool equivalent(int code, const error_condition& condition) const noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# virtual bool equivalent(const error_code& code, int condition) const noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcat.nonvirtuals] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator==(const error_category& rhs) const noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator!=(const error_category& rhs) const noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcat.objects] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# const error_category& generic_category() noexcept;
+```
+
+[subs=+quotes]
+```
+[.underline .green]#constexpr# const error_category& system_category() noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcode.overview] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+namespace std {
+  class error_code {
+  public:
+    // 18.5.3.2, constructors
+    [.underline .green]#constexpr# error_code() noexcept;
+    [.underline .green]#constexpr# error_code(int val, const error_category& cat) noexcept;
+    template<class ErrorCodeEnum>
+      [.underline .green]#constexpr# error_code(ErrorCodeEnum e) noexcept;
+
+    // 18.5.3.3, modifiers
+    [.underline .green]#constexpr# void assign(int val, const error_category& cat) noexcept;
+    template<class ErrorCodeEnum>
+      [.underline .green]#constexpr# error_code& operator=(ErrorCodeEnum e) noexcept;
+    [.underline .green]#constexpr# void clear() noexcept;
+
+    // 18.5.3.4, observers
+    [.underline .green]#constexpr# int value() const noexcept;
+    [.underline .green]#constexpr# const error_category& category() const noexcept;
+    [.underline .green]#constexpr# error_condition default_error_condition() const noexcept;
+    string message() const;
+    [.underline .green]#constexpr# explicit operator bool() const noexcept;
+
+  private:
+    int val_;                   _// exposition only_
+    const error_category* cat_; _// exposition only_
+  };
+
+  // 18.5.3.5, non-member functions
+  [.underline .green]#constexpr# error_code make_error_code(errc e) noexcept;
+
+  template<class charT, class traits>
+    basic_ostream<charT, traits>&
+      operator<<(basic_ostream<charT, traits>& os, const error_code& ec);
+}
+```
+
+[.navy]#_Change [syserr.errcode.constructors] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# error_code() noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# error_code(int val, const error_category& cat) noexcept;
+```
+[subs=+quotes]
+```
+template<class ErrorCodeEnum>
+  [.underline .green]#constexpr# error_code(ErrorCodeEnum e) noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcode.modifiers] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# void assign(int val, const error_category& cat) noexcept;
+```
+[subs=+quotes]
+```
+template<class ErrorCodeEnum>
+  [.underline .green]#constexpr# error_code& operator=(ErrorCodeEnum e) noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# void clear() noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcode.observers] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# int value() const noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# const error_category& category() const noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# error_condition default_error_condition() const noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# explicit operator bool() const noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcode.nonmembers] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# error_code make_error_code(errc e) noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcondition.overview] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+namespace std {
+  class error_condition {
+  public:
+    // 18.5.4.2, constructors
+    [.underline .green]#constexpr# error_condition() noexcept;
+    [.underline .green]#constexpr# error_condition(int val, const error_category& cat) noexcept;
+    template<class ErrorConditionEnum>
+      [.underline .green]#constexpr# error_condition(ErrorConditionEnum e) noexcept;
+
+    // 18.5.4.3, modifiers
+    [.underline .green]#constexpr# void assign(int val, const error_category& cat) noexcept;
+    template<class ErrorConditionEnum>
+      [.underline .green]#constexpr# error_condition& operator=(ErrorConditionEnum e) noexcept;
+    [.underline .green]#constexpr# void clear() noexcept;
+
+    // 18.5.4.4, observers
+    [.underline .green]#constexpr# int value() const noexcept;
+    [.underline .green]#constexpr# const error_category& category() const noexcept;
+    string message() const;
+    [.underline .green]#constexpr# explicit operator bool() const noexcept;
+
+  private:
+    int val_;                   _// exposition only_
+    const error_category* cat_; _// exposition only_
+  };
+}
+```
+
+[.navy]#_Change [syserr.errcondition.constructors] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# error_condition() noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# error_condition(int val, const error_category& cat) noexcept;
+```
+[subs=+quotes]
+```
+template<class ErrorConditionEnum>
+  [.underline .green]#constexpr# error_condition(ErrorConditionEnum e) noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcondition.modifiers] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# void assign(int val, const error_category& cat) noexcept;
+```
+[subs=+quotes]
+```
+template<class ErrorConditionEnum>
+  [.underline .green]#constexpr# error_condition& operator=(ErrorConditionEnum e) noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# void clear() noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcondition.observers] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# int value() const noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# const error_category& category() const noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# explicit operator bool() const noexcept;
+```
+--
+
+[.navy]#_Change [syserr.errcondition.nonmembers] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# error_condition make_error_condition(errc e) noexcept;
+```
+--
+
+[.navy]#_Change [syserr.compare] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator==(const error_code& lhs, const error_code& rhs) noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator==(const error_code& lhs, const error_condition& rhs) noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator==(const error_condition& lhs, const error_code& rhs) noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator==(const error_condition& lhs, const error_condition& rhs) noexcept;
+```
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator!=(const error_code& lhs, const error_code& rhs) noexcept;
+[.underline .green]#constexpr# bool operator!=(const error_code& lhs, const error_condition& rhs) noexcept;
+[.underline .green]#constexpr# bool operator!=(const error_condition& lhs, const error_code& rhs) noexcept;
+[.underline .green]#constexpr# bool operator!=(const error_condition& lhs, const error_condition& rhs) noexcept;
+```
+--
+
+## Potential Objections
+
+...
