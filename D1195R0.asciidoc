@@ -45,7 +45,7 @@ whereas with the proposed additions it compiles down to two `mov` instructions.
 
 ## Implementability
 
-The suggested additions have largely been implemented and shipped in Boost.System release 1.68. The diffences are as folllows:
+The suggested additions have largely been implemented and shipped in Boost.System release 1.68. The differences are as folllows:
 
 - Virtual functions have not been marked `constexpr`, as this requires compiler support for https://wg21.link/p1064r0[P1064R0].
 - The nonvirtual functions that are implemented in terms of virtual calls have not been marked `constexpr`.
