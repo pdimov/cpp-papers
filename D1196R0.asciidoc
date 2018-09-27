@@ -201,3 +201,5 @@ _Returns:_:: [.red .line-through]#`lhs.category() == rhs.category() && lhs.value
 [.green .underline]#constexpr# bool operator<(const error_condition& lhs, const error_condition& rhs) noexcept;
 ```
 --
+
+_-- end_
