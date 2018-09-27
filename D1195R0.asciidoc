@@ -455,3 +455,12 @@ trivial, this shouldn't even be necessary, as the standard category objects will
 
 ### Duplicate Categories
 
+To support scenarios in which more than one instance of a standard category is present in a process, some
+implementations maintain "virtual addresses" for the standard categories, known constants that they use for
+category equality comparisons instead of the real address. For user-defined categories, the "virtual address"
+is derived from the real address via `reinterpret_cast`, an operation that is `constexpr`-hostile.
+
+It's possible to rework this scheme in a `constexpr`-friendly way, but the companion paper
+https://wg21.link/p1196r0[P1196R0] proposes an even better solution.
+
+_-- end_
