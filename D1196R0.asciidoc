@@ -61,6 +61,26 @@ is accepted.
 
 [.navy]#_(All edits are relative to N4762 with P1195R0 applied.)_#
 
+[.navy]#_Change [system_error.syn] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+// 18.5.5, comparison functions
+constexpr bool operator==(const error_code& lhs, const error_code& rhs) noexcept;
+constexpr bool operator==(const error_code& lhs, const error_condition& rhs) noexcept;
+constexpr bool operator==(const error_condition& lhs, const error_code& rhs) noexcept;
+constexpr bool operator==(const error_condition& lhs, const error_condition& rhs) noexcept;
+constexpr bool operator!=(const error_code& lhs, const error_code& rhs) noexcept;
+constexpr bool operator!=(const error_code& lhs, const error_condition& rhs) noexcept;
+constexpr bool operator!=(const error_condition& lhs, const error_code& rhs) noexcept;
+constexpr bool operator!=(const error_condition& lhs, const error_condition& rhs) noexcept;
+[.underline .green]#constexpr# bool operator< (const error_code& lhs, const error_code& rhs) noexcept;
+[.underline .green]#constexpr# bool operator< (const error_condition& lhs, const error_condition& rhs) noexcept;
+```
+
 [.navy]#_Change [syserr.errcat.overview] as follows:_#
 
 [none]
