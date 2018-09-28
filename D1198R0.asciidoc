@@ -1,0 +1,166 @@
+﻿# Adding `error_category::failed()`
+Peter Dimov <pdimov@pdimov.com>
+:toc: macro
+
+[horizontal]
+Document Number:: D1198R0
+Date:: 2018-09-28
+Project:: Programming Language C++
+Audience:: Library Evolution Working Group
+Summary:: This paper proposes that `std::error_category::failed()` be added, so that success or failure no longer be hardcoded to rely on whether the code value is zero.
+
+toc::[]
+
+## Summary
+
+At present, the idiomatic pattern
+
+```
+void f(std::error_code& ec)
+{
+    perform_first_action(ec);
+    if(ec) return;
+
+    perform_second_action(ec);
+    if(ec) return;
+
+    // ...
+}
+```
+
+tests for failure by using `operator bool`, which is hardcoded to return `value() != 0`. This makes it impossible to define categories for which the equivalence between
+0 and success doesn't hold. For instance, Windows `HRESULT` codes represent success when nonnegative, and HTTP status codes represent success when between 200 and 299.
+
+Categories should encapsulate the knowledge of interpreting a code as a success or as a failure, and this paper proposes a mechanism by which they can do so, by defining
+a virtual member function `failed`.
+
+In addition, `failed()` is added to `error_code` and `error_condition`, so that the idiomatic use can be
+
+```
+    if(ec.failed()) return;
+```
+
+Practice shows that `if(ec)` is often confusing, as it can be interpreted as both "has succeeded" and "has failed". No such ambiguity exists with `if(ec.failed())`.
+
+## Implementability
+
+The proposed changes have been implemented in Boost.System and currently reside on
+https://github.com/boostorg/system[its develop branch]. They are expected to ship in Boost 1.69.
+
+The Boost implementation calls `category().failed(value())` in the constructor of `error_code` (and `error_condition`) and caches the result in a `bool` member. This
+results in significantly improved code generation because the category is almost always known at compile time at the point the constructor of `error_code` is invoked,
+whereas it is typically not known at the point `error_code::failed` is invoked.
+
+On 64 bit platforms, the `bool` member can fit into the unused padding between `int val_` and `error_category const* cat_`, so `error_code` doesn't grow in size.
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4762.)_#
+
+[.navy]#_Change [syserr.errcat.overview] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+namespace std {
+  class error_category {
+  public:
+    constexpr error_category() noexcept;
+    virtual ~error_category();
+    error_category& operator=(const error_category&) = delete;
+    virtual const char* name() const noexcept = 0;
+    virtual error_condition default_error_condition(int ev) const noexcept;
+    virtual bool equivalent(int code, const error_condition& condition) const noexcept;
+    virtual bool equivalent(const error_code& code, int condition) const noexcept;
+    virtual string message(int ev) const = 0;
+    [.underline .green]#constexpr virtual bool failed(int ev) const noexcept;#
+
+    bool operator==(const error_category& rhs) const noexcept;
+    bool operator!=(const error_category& rhs) const noexcept;
+    bool operator< (const error_category& rhs) const noexcept;
+  };
+
+  const error_category& generic_category() noexcept;
+  const error_category& system_category() noexcept;
+}
+```
+
+[.navy]#_Add to [syserr.errcat.virtuals] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#constexpr virtual bool failed(int ev) const noexcept;#
+```
+[horizontal]
+[.underline .green]#_Returns:_#:: [.underline .green]#`ev != 0`.#
+--
+
+[.navy]#_Add to [syserr.errcat.derived] as follows:_#
+
+[none]
+* {blank}
++
+--
+[subs=+quotes]
+```
+[.underline .green]#virtual bool failed(int ev) const noexcept;#
+```
+[horizontal]
+[.underline .green]#_Returns:_#:: [.underline .green]#`true` when `ev` represents a failure.#
+[.underline .green]#_Remarks:_#:: [.underline .green]#All calls passing the same `ev` shall yield the same result.#
+--
+
+[.navy]#_Change [syserr.errcode.observers] as follows:_#
+
+[none]
+* {blank}
++
+--
+```
+explicit operator bool() const noexcept;
+```
+[horizontal]
+_Returns:_:: [.red .line-through]#`value() != 0`# [.underline .green]#`failed()`#.
+
+[subs=+quotes]
+```
+[.underline .green]#constexpr bool failed() const noexcept;#
+```
+[horizontal]
+[.underline .green]#_Returns:_#::
+[.underline .green]#`category().failed(value())`.#
++
+[.underline .green]#[_Note:_ The implementation may call `category().failed(value())` once,
+for example at construction time, and cache the result. _--end note_]#
+--
+
+[.navy]#_Change [syserr.errcondition.observers] as follows:_#
+
+[none]
+* {blank}
++
+--
+```
+explicit operator bool() const noexcept;
+```
+[horizontal]
+_Returns:_:: [.red .line-through]#`value() != 0`# [.underline .green]#`failed()`#.
+
+[subs=+quotes]
+```
+[.underline .green]#constexpr bool failed() const noexcept;#
+```
+[horizontal]
+[.underline .green]#_Returns:_#:: [.underline .green]#`category().failed(value())`.#
++
+[.underline .green]#[_Note:_ The implementation may call `category().failed(value())` once,
+for example at construction time, and cache the result. _--end note_]#
+--
+
+_-- end_
