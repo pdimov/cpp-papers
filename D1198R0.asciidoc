@@ -11,7 +11,7 @@ Summary:: This paper proposes that `std::error_category::failed()` be added, so 
 
 toc::[]
 
-## Motivation
+## Rationale
 
 At present, the idiomatic pattern
 

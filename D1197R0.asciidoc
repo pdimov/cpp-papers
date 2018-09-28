@@ -11,23 +11,18 @@ Summary:: This paper proposes a non-allocating overload of `std::error_category:
 
 toc::[]
 
-## Summary
+## Rationale
 
-This paper proposes an overload of `std::error_category::message` that copies a message describing the error
-into a caller-supplied buffer, instead of allocating and returning an `std::string`.
+The facilities in `<system_error>` are suitable for reporting errors in resource-constrained environments,
+but the function `message`, specified to return an `std::string`, mandates allocation, which may be prohibited.
+
+Therefore, an overload of `message` is proposed that returns the message into a caller-supplied buffer.
 
 The function's interface is modeled after the Glibc-specific `strerror_r` function, as it allows literals to
 be directly returned without a string copy or truncation.
 
 The default `error_category` implementation of the new overload calls the existing `message(ev)` and returns
 the string into the supplied buffer, in order to retain backward compatibility.
-
-## Motivation
-
-The facilities in `<system_error>` are suitable for reporting errors in resource-constrained environments,
-but the function `message`, specified to return an `std::string`, mandates allocation, which may be prohibited.
-
-Therefore, an overload is proposed that returns the message into a caller-supplied buffer.
 
 ## Implementability
 
