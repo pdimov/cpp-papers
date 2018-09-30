@@ -33,8 +33,8 @@ Switching to unique category identifiers solves both problems.
 ## Design Rationale
 
 The choice of 64 bits for the identifier is motivated by the desire to make it possible for programmers
-to define their own categories without a central authority allocating identifiers. Collisions between 64 bit
-random numbers are rare enough.
+to define their own categories without a central authority allocating identifiers. Collisions between
+https://www.random.org/cgi-bin/randbyte?nbytes=8&format=h[64 bit random numbers] are rare enough.
 
 The identifiers of the standard generic and system categories have been specified to help portability and
 reproducibility.
