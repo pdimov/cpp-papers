@@ -51,7 +51,10 @@ The suggested additions have largely been implemented and shipped in Boost.Syste
 - The nonvirtual functions that are implemented in terms of virtual calls have not been marked `constexpr`.
 - `error_category::operator==` and `error_category::operator!=` have been implemented as nonmembers, because a literal `error_category`
   requires compiler support for the not yet accepted https://wg21.link/p1077r0[P1077R0] (or, alternatively, for `constexpr` destructors
-  as in https://wg21.link/p0784r4[P0784R4].
+  as in https://wg21.link/p0784r4[P0784R4].)
+
+Boost.System 1.68 can be used as a static library, as a shared library, or as header-only, and the `constexpr` additions work in all
+three modes.
 
 A test demonstrating the functionality is https://github.com/boostorg/system/blob/boost-1.68.0/test/constexpr_test.cpp[available on Github].
 
@@ -101,6 +104,7 @@ namespace std {
   public:
     constexpr error_category() noexcept;
     virtual ~error_category() [.underline .green]#= default()#;
+    error_category(const error_category&) = delete;
     error_category& operator=(const error_category&) = delete;
     virtual const char* name() const noexcept = 0;
     [.underline .green]#constexpr# virtual error_condition default_error_condition(int ev) const noexcept;
@@ -462,5 +466,27 @@ is derived from the real address via `reinterpret_cast`, an operation that is `c
 
 It's possible to rework this scheme in a `constexpr`-friendly way, but the companion paper
 https://wg21.link/p1196r0[P1196R0] proposes an even better solution.
+
+## ABI Implications
+
+The author believes that this proposal does not constitute an ABI break. In a typical implementation,
+`generic_category` changes from a declaration in `<system_error>`:
+
+```
+const error_category& generic_category() noexcept;
+```
+
+to an inline definition along the lines of:
+
+```
+constexpr const error_category& generic_category() noexcept
+{
+    extern const __generic_category_impl __generic_category_instance;
+    return __generic_category_instance;
+}
+```
+
+but the implementation can still provide an out of line definition of `generic_category` in the library
+for old clients that link to it.
 
 _-- end_
