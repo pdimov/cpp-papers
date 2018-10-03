@@ -1,6 +1,7 @@
 ﻿# Value-based `std::error_category` comparison
 Peter Dimov <pdimov@pdimov.com>
 :toc: macro
+:idprefix:
 
 [horizontal]
 Document Number:: D1196R0
@@ -221,5 +222,30 @@ _Returns:_:: [.red .line-through]#`lhs.category() == rhs.category() && lhs.value
 [.green .underline]#constexpr# bool operator<(const error_condition& lhs, const error_condition& rhs) noexcept;
 ```
 --
+
+## ABI Implications
+
+The proposed addition of a 64 bit data member to `error_category` unfortunately constitutes an ABI break.
+
+One possible way to implement it is by adding a magic signature in front of the new `id_` member:
+
+```
+class error_category
+{
+private:
+
+    uint32_t magic_ = 0xbe5da313;
+    uint32_t version_ = 1;
+
+    uint64_t id_ = 0;
+
+    // ...
+```
+
+and then, before accessing `id_`, check whether `magic_` has the value of `0xbe5da313` and whether `version_`
+is positive and smaller than some sufficient upper limit.
+
+This has the additional benefit of enabling further `error_category` ABI evolution, realized by increasing
+`version_` on each ABI change.
 
 _-- end_

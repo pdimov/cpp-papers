@@ -1,6 +1,7 @@
 ﻿# A non-allocating overload of `error_category::message()`
 Peter Dimov <pdimov@pdimov.com>
 :toc: macro
+:idprefix:
 
 [horizontal]
 Document Number:: D1197R0
@@ -130,7 +131,7 @@ const char* my_category::message(int ev, char* buffer, size_t len) const noexcep
 }
 ```
 +
-[.underline .green]#_--end example:_]#
+[.underline .green]#_--end example_]#
 --
 
 [.navy]#_Add to [syserr.errcode.observers] as follows:_#
@@ -160,5 +161,13 @@ const char* my_category::message(int ev, char* buffer, size_t len) const noexcep
 [horizontal]
 [.underline .green]#_Returns:_#:: [.underline .green]#`category().message(value(), buffer, len)`.#
 --
+
+## ABI Implications
+
+The proposed addition of a new virtual function to `error_category` unfortunately constitutes an ABI break,
+although its impact is relatively limited, as it only affects new code calling the new `message` overload
+on `error_code` objects from user-defined categories returned by old code.
+
+Adopting the versioning mechanism proposed in https://wg21.link/p1196r0[P1196R0] would be an alternative.
 
 _-- end_

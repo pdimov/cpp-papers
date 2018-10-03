@@ -1,6 +1,7 @@
 ﻿# Adding `error_category::failed()`
 Peter Dimov <pdimov@pdimov.com>
 :toc: macro
+:idprefix:
 
 [horizontal]
 Document Number:: D1198R0
@@ -162,5 +163,17 @@ _Returns:_:: [.red .line-through]#`value() != 0`# [.underline .green]#`failed()`
 [.underline .green]#[_Note:_ The implementation may call `category().failed(value())` once,
 for example at construction time, and cache the result. _--end note_]#
 --
+
+## ABI Implications
+
+The proposed addition of a new virtual function to `error_category` unfortunately constitutes an ABI break.
+
+It affects new code calling the new `failed` function on `error_code` objects from user-defined categories
+returned by old code. In addition, since the contextual conversion to `bool` is proposed to now call
+`failed`, code using this old construct will also be affected.
+
+Adopting the versioning mechanism proposed in https://wg21.link/p1196r0[P1196R0] -- if deemed workable --
+would solve both issues. Otherwise, if affecting just code using the new construct is considered acceptable,
+the `bool` conversion can be sacrificed on the altar of compatibility and left unchanged.
 
 _-- end_
