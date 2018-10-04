@@ -4,7 +4,7 @@ Peter Dimov <pdimov@pdimov.com>
 :idprefix:
 
 [horizontal]
-Document Number:: D1197R0
+Document Number:: P1197R0
 Date:: 2018-09-27
 Project:: Programming Language C++
 Audience:: Library Evolution Working Group
