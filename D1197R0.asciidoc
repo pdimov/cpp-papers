@@ -168,6 +168,7 @@ The proposed addition of a new virtual function to `error_category` unfortunatel
 although its impact is relatively limited, as it only affects new code calling the new `message` overload
 on `error_code` objects from user-defined categories returned by old code.
 
-Adopting the versioning mechanism proposed in https://wg21.link/p1196r0[P1196R0] would be an alternative.
+Adopting the versioning mechanism proposed in https://wg21.link/p1196r0[P1196R0], if deemed workable, could
+allow even the above scenario.
 
 _-- end_

@@ -48,7 +48,8 @@ whereas with the proposed additions it compiles down to two `mov` instructions.
 
 The suggested additions have largely been implemented and shipped in Boost.System release 1.68. The differences are as folllows:
 
-- Virtual functions have not been marked `constexpr`, as this requires compiler support for https://wg21.link/p1064r0[P1064R0].
+- Virtual functions have not been marked `constexpr` in the Boost implementation, as this requires compiler support for https://wg21.link/p1064r0[P1064R0].
+  (P1064 has been voted into {cpp}20 at Rapperswil, but no compiler implements it yet at time of writing.)
 - The nonvirtual functions that are implemented in terms of virtual calls have not been marked `constexpr`.
 - `error_category::operator==` and `error_category::operator!=` have been implemented as nonmembers, because a literal `error_category`
   requires compiler support for the not yet accepted https://wg21.link/p1077r0[P1077R0] (or, alternatively, for `constexpr` destructors
