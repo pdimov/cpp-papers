@@ -1,0 +1,3044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.6">
+<meta name="author" content="Peter Dimov">
+<title>Adding support for type-based metaprogramming to the standard library</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
+<style>
+/* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
+/* Remove comment around @import statement below when using as a custom stylesheet */
+/*@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700";*/
+article,aside,details,figcaption,figure,footer,header,hgroup,main,nav,section,summary{display:block}
+audio,canvas,video{display:inline-block}
+audio:not([controls]){display:none;height:0}
+[hidden],template{display:none}
+script{display:none!important}
+html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}
+a{background:transparent}
+a:focus{outline:thin dotted}
+a:active,a:hover{outline:0}
+h1{font-size:2em;margin:.67em 0}
+abbr[title]{border-bottom:1px dotted}
+b,strong{font-weight:bold}
+dfn{font-style:italic}
+hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0}
+mark{background:#ff0;color:#000}
+code,kbd,pre,samp{font-family:monospace;font-size:1em}
+pre{white-space:pre-wrap}
+q{quotes:"\201C" "\201D" "\2018" "\2019"}
+small{font-size:80%}
+sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}
+sup{top:-.5em}
+sub{bottom:-.25em}
+img{border:0}
+svg:not(:root){overflow:hidden}
+figure{margin:0}
+fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}
+legend{border:0;padding:0}
+button,input,select,textarea{font-family:inherit;font-size:100%;margin:0}
+button,input{line-height:normal}
+button,select{text-transform:none}
+button,html input[type="button"],input[type="reset"],input[type="submit"]{-webkit-appearance:button;cursor:pointer}
+button[disabled],html input[disabled]{cursor:default}
+input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}
+input[type="search"]{-webkit-appearance:textfield;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box}
+input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit-search-decoration{-webkit-appearance:none}
+button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}
+textarea{overflow:auto;vertical-align:top}
+table{border-collapse:collapse;border-spacing:0}
+*,*:before,*:after{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}
+html,body{font-size:100%}
+body{background:#fff;color:rgba(0,0,0,.8);padding:0;margin:0;font-family:"Noto Serif","DejaVu Serif",serif;font-weight:400;font-style:normal;line-height:1;position:relative;cursor:auto;tab-size:4;-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased}
+a:hover{cursor:pointer}
+img,object,embed{max-width:100%;height:auto}
+object,embed{height:100%}
+img{-ms-interpolation-mode:bicubic}
+.left{float:left!important}
+.right{float:right!important}
+.text-left{text-align:left!important}
+.text-right{text-align:right!important}
+.text-center{text-align:center!important}
+.text-justify{text-align:justify!important}
+.hide{display:none}
+img,object,svg{display:inline-block;vertical-align:middle}
+textarea{height:auto;min-height:50px}
+select{width:100%}
+.center{margin-left:auto;margin-right:auto}
+.spread{width:100%}
+p.lead,.paragraph.lead>p,#preamble>.sectionbody>.paragraph:first-of-type p{font-size:1.21875em;line-height:1.6}
+.subheader,.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{line-height:1.45;color:#7a2518;font-weight:400;margin-top:0;margin-bottom:.25em}
+div,dl,dt,dd,ul,ol,li,h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6,pre,form,p,blockquote,th,td{margin:0;padding:0;direction:ltr}
+a{color:#2156a5;text-decoration:underline;line-height:inherit}
+a:hover,a:focus{color:#1d4b8f}
+a img{border:none}
+p{font-family:inherit;font-weight:400;font-size:1em;line-height:1.6;margin-bottom:1.25em;text-rendering:optimizeLegibility}
+p aside{font-size:.875em;line-height:1.35;font-style:italic}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{font-family:"Open Sans","DejaVu Sans",sans-serif;font-weight:300;font-style:normal;color:#ba3925;text-rendering:optimizeLegibility;margin-top:1em;margin-bottom:.5em;line-height:1.0125em}
+h1 small,h2 small,h3 small,#toctitle small,.sidebarblock>.content>.title small,h4 small,h5 small,h6 small{font-size:60%;color:#e99b8f;line-height:0}
+h1{font-size:2.125em}
+h2{font-size:1.6875em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.375em}
+h4,h5{font-size:1.125em}
+h6{font-size:1em}
+hr{border:solid #ddddd8;border-width:1px 0 0;clear:both;margin:1.25em 0 1.1875em;height:0}
+em,i{font-style:italic;line-height:inherit}
+strong,b{font-weight:bold;line-height:inherit}
+small{font-size:60%;line-height:inherit}
+code{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;font-weight:400;color:rgba(0,0,0,.9)}
+ul,ol,dl{font-size:1em;line-height:1.6;margin-bottom:1.25em;list-style-position:outside;font-family:inherit}
+ul,ol{margin-left:1.5em}
+ul li ul,ul li ol{margin-left:1.25em;margin-bottom:0;font-size:1em}
+ul.square li ul,ul.circle li ul,ul.disc li ul{list-style:inherit}
+ul.square{list-style-type:square}
+ul.circle{list-style-type:circle}
+ul.disc{list-style-type:disc}
+ol li ul,ol li ol{margin-left:1.25em;margin-bottom:0}
+dl dt{margin-bottom:.3125em;font-weight:bold}
+dl dd{margin-bottom:1.25em}
+abbr,acronym{text-transform:uppercase;font-size:90%;color:rgba(0,0,0,.8);border-bottom:1px dotted #ddd;cursor:help}
+abbr{text-transform:none}
+blockquote{margin:0 0 1.25em;padding:.5625em 1.25em 0 1.1875em;border-left:1px solid #ddd}
+blockquote cite{display:block;font-size:.9375em;color:rgba(0,0,0,.6)}
+blockquote cite:before{content:"\2014 \0020"}
+blockquote cite a,blockquote cite a:visited{color:rgba(0,0,0,.6)}
+blockquote,blockquote p{line-height:1.6;color:rgba(0,0,0,.85)}
+@media only screen and (min-width:768px){h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2}
+h1{font-size:2.75em}
+h2{font-size:2.3125em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.6875em}
+h4{font-size:1.4375em}}
+table{background:#fff;margin-bottom:1.25em;border:solid 1px #dedede}
+table thead,table tfoot{background:#f7f8f7;font-weight:bold}
+table thead tr th,table thead tr td,table tfoot tr th,table tfoot tr td{padding:.5em .625em .625em;font-size:inherit;color:rgba(0,0,0,.8);text-align:left}
+table tr th,table tr td{padding:.5625em .625em;font-size:inherit;color:rgba(0,0,0,.8)}
+table tr.even,table tr.alt,table tr:nth-of-type(even){background:#f8f8f7}
+table thead tr th,table tfoot tr th,table tbody tr td,table tr td,table tfoot tr td{display:table-cell;line-height:1.6}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2;word-spacing:-.05em}
+h1 strong,h2 strong,h3 strong,#toctitle strong,.sidebarblock>.content>.title strong,h4 strong,h5 strong,h6 strong{font-weight:400}
+.clearfix:before,.clearfix:after,.float-group:before,.float-group:after{content:" ";display:table}
+.clearfix:after,.float-group:after{clear:both}
+*:not(pre)>code{font-size:.9375em;font-style:normal!important;letter-spacing:0;padding:.1em .5ex;word-spacing:-.15em;background-color:#f7f7f8;-webkit-border-radius:4px;border-radius:4px;line-height:1.45;text-rendering:optimizeSpeed;word-wrap:break-word}
+*:not(pre)>code.nobreak{word-wrap:normal}
+*:not(pre)>code.nowrap{white-space:nowrap}
+pre,pre>code{line-height:1.45;color:rgba(0,0,0,.9);font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;font-weight:400;text-rendering:optimizeSpeed}
+em em{font-style:normal}
+strong strong{font-weight:400}
+.keyseq{color:rgba(51,51,51,.8)}
+kbd{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;display:inline-block;color:rgba(0,0,0,.8);font-size:.65em;line-height:1.45;background-color:#f7f7f7;border:1px solid #ccc;-webkit-border-radius:3px;border-radius:3px;-webkit-box-shadow:0 1px 0 rgba(0,0,0,.2),0 0 0 .1em white inset;box-shadow:0 1px 0 rgba(0,0,0,.2),0 0 0 .1em #fff inset;margin:0 .15em;padding:.2em .5em;vertical-align:middle;position:relative;top:-.1em;white-space:nowrap}
+.keyseq kbd:first-child{margin-left:0}
+.keyseq kbd:last-child{margin-right:0}
+.menuseq,.menuref{color:#000}
+.menuseq b:not(.caret),.menuref{font-weight:inherit}
+.menuseq{word-spacing:-.02em}
+.menuseq b.caret{font-size:1.25em;line-height:.8}
+.menuseq i.caret{font-weight:bold;text-align:center;width:.45em}
+b.button:before,b.button:after{position:relative;top:-1px;font-weight:400}
+b.button:before{content:"[";padding:0 3px 0 2px}
+b.button:after{content:"]";padding:0 2px 0 3px}
+p a>code:hover{color:rgba(0,0,0,.9)}
+#header,#content,#footnotes,#footer{width:100%;margin-left:auto;margin-right:auto;margin-top:0;margin-bottom:0;max-width:62.5em;*zoom:1;position:relative;padding-left:.9375em;padding-right:.9375em}
+#header:before,#header:after,#content:before,#content:after,#footnotes:before,#footnotes:after,#footer:before,#footer:after{content:" ";display:table}
+#header:after,#content:after,#footnotes:after,#footer:after{clear:both}
+#content{margin-top:1.25em}
+#content:before{content:none}
+#header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
+#header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #ddddd8}
+#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #ddddd8;padding-bottom:8px}
+#header .details{border-bottom:1px solid #ddddd8;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:-ms-flexbox;display:-webkit-flex;display:flex;-ms-flex-flow:row wrap;-webkit-flex-flow:row wrap;flex-flow:row wrap}
+#header .details span:first-child{margin-left:-.125em}
+#header .details span.email a{color:rgba(0,0,0,.85)}
+#header .details br{display:none}
+#header .details br+span:before{content:"\00a0\2013\00a0"}
+#header .details br+span.author:before{content:"\00a0\22c5\00a0";color:rgba(0,0,0,.85)}
+#header .details br+span#revremark:before{content:"\00a0|\00a0"}
+#header #revnumber{text-transform:capitalize}
+#header #revnumber:after{content:"\00a0"}
+#content>h1:first-child:not([class]){color:rgba(0,0,0,.85);border-bottom:1px solid #ddddd8;padding-bottom:8px;margin-top:0;padding-top:1rem;margin-bottom:1.25rem}
+#toc{border-bottom:1px solid #efefed;padding-bottom:.5em}
+#toc>ul{margin-left:.125em}
+#toc ul.sectlevel0>li>a{font-style:italic}
+#toc ul.sectlevel0 ul.sectlevel1{margin:.5em 0}
+#toc ul{font-family:"Open Sans","DejaVu Sans",sans-serif;list-style-type:none}
+#toc li{line-height:1.3334;margin-top:.3334em}
+#toc a{text-decoration:none}
+#toc a:active{text-decoration:underline}
+#toctitle{color:#7a2518;font-size:1.2em}
+@media only screen and (min-width:768px){#toctitle{font-size:1.375em}
+body.toc2{padding-left:15em;padding-right:0}
+#toc.toc2{margin-top:0!important;background-color:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #efefed;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
+#toc.toc2 #toctitle{margin-top:0;margin-bottom:.8rem;font-size:1.2em}
+#toc.toc2>ul{font-size:.9em;margin-bottom:0}
+#toc.toc2 ul ul{margin-left:0;padding-left:1em}
+#toc.toc2 ul.sectlevel0 ul.sectlevel1{padding-left:0;margin-top:.5em;margin-bottom:.5em}
+body.toc2.toc-right{padding-left:0;padding-right:15em}
+body.toc2.toc-right #toc.toc2{border-right-width:0;border-left:1px solid #efefed;left:auto;right:0}}
+@media only screen and (min-width:1280px){body.toc2{padding-left:20em;padding-right:0}
+#toc.toc2{width:20em}
+#toc.toc2 #toctitle{font-size:1.375em}
+#toc.toc2>ul{font-size:.95em}
+#toc.toc2 ul ul{padding-left:1.25em}
+body.toc2.toc-right{padding-left:0;padding-right:20em}}
+#content #toc{border-style:solid;border-width:1px;border-color:#e0e0dc;margin-bottom:1.25em;padding:1.25em;background:#f8f8f7;-webkit-border-radius:4px;border-radius:4px}
+#content #toc>:first-child{margin-top:0}
+#content #toc>:last-child{margin-bottom:0}
+#footer{max-width:100%;background-color:rgba(0,0,0,.8);padding:1.25em}
+#footer-text{color:rgba(255,255,255,.8);line-height:1.44}
+.sect1{padding-bottom:.625em}
+@media only screen and (min-width:768px){.sect1{padding-bottom:1.25em}}
+.sect1+.sect1{border-top:1px solid #efefed}
+#content h1>a.anchor,h2>a.anchor,h3>a.anchor,#toctitle>a.anchor,.sidebarblock>.content>.title>a.anchor,h4>a.anchor,h5>a.anchor,h6>a.anchor{position:absolute;z-index:1001;width:1.5ex;margin-left:-1.5ex;display:block;text-decoration:none!important;visibility:hidden;text-align:center;font-weight:400}
+#content h1>a.anchor:before,h2>a.anchor:before,h3>a.anchor:before,#toctitle>a.anchor:before,.sidebarblock>.content>.title>a.anchor:before,h4>a.anchor:before,h5>a.anchor:before,h6>a.anchor:before{content:"\00A7";font-size:.85em;display:block;padding-top:.1em}
+#content h1:hover>a.anchor,#content h1>a.anchor:hover,h2:hover>a.anchor,h2>a.anchor:hover,h3:hover>a.anchor,#toctitle:hover>a.anchor,.sidebarblock>.content>.title:hover>a.anchor,h3>a.anchor:hover,#toctitle>a.anchor:hover,.sidebarblock>.content>.title>a.anchor:hover,h4:hover>a.anchor,h4>a.anchor:hover,h5:hover>a.anchor,h5>a.anchor:hover,h6:hover>a.anchor,h6>a.anchor:hover{visibility:visible}
+#content h1>a.link,h2>a.link,h3>a.link,#toctitle>a.link,.sidebarblock>.content>.title>a.link,h4>a.link,h5>a.link,h6>a.link{color:#ba3925;text-decoration:none}
+#content h1>a.link:hover,h2>a.link:hover,h3>a.link:hover,#toctitle>a.link:hover,.sidebarblock>.content>.title>a.link:hover,h4>a.link:hover,h5>a.link:hover,h6>a.link:hover{color:#a53221}
+.audioblock,.imageblock,.literalblock,.listingblock,.stemblock,.videoblock{margin-bottom:1.25em}
+.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{text-rendering:optimizeLegibility;text-align:left;font-family:"Noto Serif","DejaVu Serif",serif;font-size:1rem;font-style:italic}
+table.tableblock>caption.title{white-space:nowrap;overflow:visible;max-width:0}
+.paragraph.lead>p,#preamble>.sectionbody>.paragraph:first-of-type p{color:rgba(0,0,0,.85)}
+table.tableblock #preamble>.sectionbody>.paragraph:first-of-type p{font-size:inherit}
+.admonitionblock>table{border-collapse:separate;border:0;background:none;width:100%}
+.admonitionblock>table td.icon{text-align:center;width:80px}
+.admonitionblock>table td.icon img{max-width:initial}
+.admonitionblock>table td.icon .title{font-weight:bold;font-family:"Open Sans","DejaVu Sans",sans-serif;text-transform:uppercase}
+.admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #ddddd8;color:rgba(0,0,0,.6)}
+.admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
+.exampleblock>.content{border-style:solid;border-width:1px;border-color:#e6e6e6;margin-bottom:1.25em;padding:1.25em;background:#fff;-webkit-border-radius:4px;border-radius:4px}
+.exampleblock>.content>:first-child{margin-top:0}
+.exampleblock>.content>:last-child{margin-bottom:0}
+.sidebarblock{border-style:solid;border-width:1px;border-color:#e0e0dc;margin-bottom:1.25em;padding:1.25em;background:#f8f8f7;-webkit-border-radius:4px;border-radius:4px}
+.sidebarblock>:first-child{margin-top:0}
+.sidebarblock>:last-child{margin-bottom:0}
+.sidebarblock>.content>.title{color:#7a2518;margin-top:0;text-align:center}
+.exampleblock>.content>:last-child>:last-child,.exampleblock>.content .olist>ol>li:last-child>:last-child,.exampleblock>.content .ulist>ul>li:last-child>:last-child,.exampleblock>.content .qlist>ol>li:last-child>:last-child,.sidebarblock>.content>:last-child>:last-child,.sidebarblock>.content .olist>ol>li:last-child>:last-child,.sidebarblock>.content .ulist>ul>li:last-child>:last-child,.sidebarblock>.content .qlist>ol>li:last-child>:last-child{margin-bottom:0}
+.literalblock pre,.listingblock pre:not(.highlight),.listingblock pre[class="highlight"],.listingblock pre[class^="highlight "],.listingblock pre.CodeRay,.listingblock pre.prettyprint{background:#f7f7f8}
+.sidebarblock .literalblock pre,.sidebarblock .listingblock pre:not(.highlight),.sidebarblock .listingblock pre[class="highlight"],.sidebarblock .listingblock pre[class^="highlight "],.sidebarblock .listingblock pre.CodeRay,.sidebarblock .listingblock pre.prettyprint{background:#f2f1f1}
+.literalblock pre,.literalblock pre[class],.listingblock pre,.listingblock pre[class]{-webkit-border-radius:4px;border-radius:4px;word-wrap:break-word;padding:1em;font-size:.8125em}
+.literalblock pre.nowrap,.literalblock pre[class].nowrap,.listingblock pre.nowrap,.listingblock pre[class].nowrap{overflow-x:auto;white-space:pre;word-wrap:normal}
+@media only screen and (min-width:768px){.literalblock pre,.literalblock pre[class],.listingblock pre,.listingblock pre[class]{font-size:.90625em}}
+@media only screen and (min-width:1280px){.literalblock pre,.literalblock pre[class],.listingblock pre,.listingblock pre[class]{font-size:1em}}
+.literalblock.output pre{color:#f7f7f8;background-color:rgba(0,0,0,.9)}
+.listingblock pre.highlightjs{padding:0}
+.listingblock pre.highlightjs>code{padding:1em;-webkit-border-radius:4px;border-radius:4px}
+.listingblock pre.prettyprint{border-width:0}
+.listingblock>.content{position:relative}
+.listingblock code[data-lang]:before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:#999}
+.listingblock:hover code[data-lang]:before{display:block}
+.listingblock.terminal pre .command:before{content:attr(data-prompt);padding-right:.5em;color:#999}
+.listingblock.terminal pre .command:not([data-prompt]):before{content:"$"}
+table.pyhltable{border-collapse:separate;border:0;margin-bottom:0;background:none}
+table.pyhltable td{vertical-align:top;padding-top:0;padding-bottom:0;line-height:1.45}
+table.pyhltable td.code{padding-left:.75em;padding-right:0}
+pre.pygments .lineno,table.pyhltable td:not(.code){color:#999;padding-left:0;padding-right:.5em;border-right:1px solid #ddddd8}
+pre.pygments .lineno{display:inline-block;margin-right:.25em}
+table.pyhltable .linenodiv{background:none!important;padding-right:0!important}
+.quoteblock{margin:0 1em 1.25em 1.5em;display:table}
+.quoteblock>.title{margin-left:-1.5em;margin-bottom:.75em}
+.quoteblock blockquote,.quoteblock blockquote p{color:rgba(0,0,0,.85);font-size:1.15rem;line-height:1.75;word-spacing:.1em;letter-spacing:0;font-style:italic;text-align:justify}
+.quoteblock blockquote{margin:0;padding:0;border:0}
+.quoteblock blockquote:before{content:"\201c";float:left;font-size:2.75em;font-weight:bold;line-height:.6em;margin-left:-.6em;color:#7a2518;text-shadow:0 1px 2px rgba(0,0,0,.1)}
+.quoteblock blockquote>.paragraph:last-child p{margin-bottom:0}
+.quoteblock .attribution{margin-top:.5em;margin-right:.5ex;text-align:right}
+.quoteblock .quoteblock{margin-left:0;margin-right:0;padding:.5em 0;border-left:3px solid rgba(0,0,0,.6)}
+.quoteblock .quoteblock blockquote{padding:0 0 0 .75em}
+.quoteblock .quoteblock blockquote:before{display:none}
+.verseblock{margin:0 1em 1.25em 1em}
+.verseblock pre{font-family:"Open Sans","DejaVu Sans",sans;font-size:1.15rem;color:rgba(0,0,0,.85);font-weight:300;text-rendering:optimizeLegibility}
+.verseblock pre strong{font-weight:400}
+.verseblock .attribution{margin-top:1.25rem;margin-left:.5ex}
+.quoteblock .attribution,.verseblock .attribution{font-size:.9375em;line-height:1.45;font-style:italic}
+.quoteblock .attribution br,.verseblock .attribution br{display:none}
+.quoteblock .attribution cite,.verseblock .attribution cite{display:block;letter-spacing:-.025em;color:rgba(0,0,0,.6)}
+.quoteblock.abstract{margin:0 0 1.25em 0;display:block}
+.quoteblock.abstract blockquote,.quoteblock.abstract blockquote p{text-align:left;word-spacing:0}
+.quoteblock.abstract blockquote:before,.quoteblock.abstract blockquote p:first-of-type:before{display:none}
+table.tableblock{max-width:100%;border-collapse:separate}
+table.tableblock td>.paragraph:last-child p>p:last-child,table.tableblock th>p:last-child,table.tableblock td>p:last-child{margin-bottom:0}
+table.tableblock,th.tableblock,td.tableblock{border:0 solid #dedede}
+table.grid-all>thead>tr>.tableblock,table.grid-all>tbody>tr>.tableblock{border-width:0 1px 1px 0}
+table.grid-all>tfoot>tr>.tableblock{border-width:1px 1px 0 0}
+table.grid-cols>*>tr>.tableblock{border-width:0 1px 0 0}
+table.grid-rows>thead>tr>.tableblock,table.grid-rows>tbody>tr>.tableblock{border-width:0 0 1px 0}
+table.grid-rows>tfoot>tr>.tableblock{border-width:1px 0 0 0}
+table.grid-all>*>tr>.tableblock:last-child,table.grid-cols>*>tr>.tableblock:last-child{border-right-width:0}
+table.grid-all>tbody>tr:last-child>.tableblock,table.grid-all>thead:last-child>tr>.tableblock,table.grid-rows>tbody>tr:last-child>.tableblock,table.grid-rows>thead:last-child>tr>.tableblock{border-bottom-width:0}
+table.frame-all{border-width:1px}
+table.frame-sides{border-width:0 1px}
+table.frame-topbot{border-width:1px 0}
+th.halign-left,td.halign-left{text-align:left}
+th.halign-right,td.halign-right{text-align:right}
+th.halign-center,td.halign-center{text-align:center}
+th.valign-top,td.valign-top{vertical-align:top}
+th.valign-bottom,td.valign-bottom{vertical-align:bottom}
+th.valign-middle,td.valign-middle{vertical-align:middle}
+table thead th,table tfoot th{font-weight:bold}
+tbody tr th{display:table-cell;line-height:1.6;background:#f7f8f7}
+tbody tr th,tbody tr th p,tfoot tr th,tfoot tr th p{color:rgba(0,0,0,.8);font-weight:bold}
+p.tableblock>code:only-child{background:none;padding:0}
+p.tableblock{font-size:1em}
+td>div.verse{white-space:pre}
+ol{margin-left:1.75em}
+ul li ol{margin-left:1.5em}
+dl dd{margin-left:1.125em}
+dl dd:last-child,dl dd:last-child>:last-child{margin-bottom:0}
+ol>li p,ul>li p,ul dd,ol dd,.olist .olist,.ulist .ulist,.ulist .olist,.olist .ulist{margin-bottom:.625em}
+ul.checklist,ul.none,ol.none,ul.no-bullet,ol.no-bullet,ol.unnumbered,ul.unstyled,ol.unstyled{list-style-type:none}
+ul.no-bullet,ol.no-bullet,ol.unnumbered{margin-left:.625em}
+ul.unstyled,ol.unstyled{margin-left:0}
+ul.checklist{margin-left:.625em}
+ul.checklist li>p:first-child>.fa-square-o:first-child,ul.checklist li>p:first-child>.fa-check-square-o:first-child{width:1.25em;font-size:.8em;position:relative;bottom:.125em}
+ul.checklist li>p:first-child>input[type="checkbox"]:first-child{margin-right:.25em}
+ul.inline{margin:0 auto .625em auto;margin-left:-1.375em;margin-right:0;padding:0;list-style:none;overflow:hidden}
+ul.inline>li{list-style:none;float:left;margin-left:1.375em;display:block}
+ul.inline>li>*{display:block}
+.unstyled dl dt{font-weight:400;font-style:normal}
+ol.arabic{list-style-type:decimal}
+ol.decimal{list-style-type:decimal-leading-zero}
+ol.loweralpha{list-style-type:lower-alpha}
+ol.upperalpha{list-style-type:upper-alpha}
+ol.lowerroman{list-style-type:lower-roman}
+ol.upperroman{list-style-type:upper-roman}
+ol.lowergreek{list-style-type:lower-greek}
+.hdlist>table,.colist>table{border:0;background:none}
+.hdlist>table>tbody>tr,.colist>table>tbody>tr{background:none}
+td.hdlist1,td.hdlist2{vertical-align:top;padding:0 .625em}
+td.hdlist1{font-weight:bold;padding-bottom:1.25em}
+.literalblock+.colist,.listingblock+.colist{margin-top:-.5em}
+.colist>table tr>td:first-of-type{padding:.4em .75em 0 .75em;line-height:1;vertical-align:top}
+.colist>table tr>td:first-of-type img{max-width:initial}
+.colist>table tr>td:last-of-type{padding:.25em 0}
+.thumb,.th{line-height:0;display:inline-block;border:solid 4px #fff;-webkit-box-shadow:0 0 0 1px #ddd;box-shadow:0 0 0 1px #ddd}
+.imageblock.left,.imageblock[style*="float: left"]{margin:.25em .625em 1.25em 0}
+.imageblock.right,.imageblock[style*="float: right"]{margin:.25em 0 1.25em .625em}
+.imageblock>.title{margin-bottom:0}
+.imageblock.thumb,.imageblock.th{border-width:6px}
+.imageblock.thumb>.title,.imageblock.th>.title{padding:0 .125em}
+.image.left,.image.right{margin-top:.25em;margin-bottom:.25em;display:inline-block;line-height:0}
+.image.left{margin-right:.625em}
+.image.right{margin-left:.625em}
+a.image{text-decoration:none;display:inline-block}
+a.image object{pointer-events:none}
+sup.footnote,sup.footnoteref{font-size:.875em;position:static;vertical-align:super}
+sup.footnote a,sup.footnoteref a{text-decoration:none}
+sup.footnote a:active,sup.footnoteref a:active{text-decoration:underline}
+#footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
+#footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em 0;border-width:1px 0 0 0}
+#footnotes .footnote{padding:0 .375em 0 .225em;line-height:1.3334;font-size:.875em;margin-left:1.2em;text-indent:-1.05em;margin-bottom:.2em}
+#footnotes .footnote a:first-of-type{font-weight:bold;text-decoration:none}
+#footnotes .footnote:last-of-type{margin-bottom:0}
+#content #footnotes{margin-top:-.625em;margin-bottom:0;padding:.75em 0}
+.gist .file-data>table{border:0;background:#fff;width:100%;margin-bottom:0}
+.gist .file-data>table td.line-data{width:99%}
+div.unbreakable{page-break-inside:avoid}
+.big{font-size:larger}
+.small{font-size:smaller}
+.underline{text-decoration:underline}
+.overline{text-decoration:overline}
+.line-through{text-decoration:line-through}
+.aqua{color:#00bfbf}
+.aqua-background{background-color:#00fafa}
+.black{color:#000}
+.black-background{background-color:#000}
+.blue{color:#0000bf}
+.blue-background{background-color:#0000fa}
+.fuchsia{color:#bf00bf}
+.fuchsia-background{background-color:#fa00fa}
+.gray{color:#606060}
+.gray-background{background-color:#7d7d7d}
+.green{color:#006000}
+.green-background{background-color:#007d00}
+.lime{color:#00bf00}
+.lime-background{background-color:#00fa00}
+.maroon{color:#600000}
+.maroon-background{background-color:#7d0000}
+.navy{color:#000060}
+.navy-background{background-color:#00007d}
+.olive{color:#606000}
+.olive-background{background-color:#7d7d00}
+.purple{color:#600060}
+.purple-background{background-color:#7d007d}
+.red{color:#bf0000}
+.red-background{background-color:#fa0000}
+.silver{color:#909090}
+.silver-background{background-color:#bcbcbc}
+.teal{color:#006060}
+.teal-background{background-color:#007d7d}
+.white{color:#bfbfbf}
+.white-background{background-color:#fafafa}
+.yellow{color:#bfbf00}
+.yellow-background{background-color:#fafa00}
+span.icon>.fa{cursor:default}
+a span.icon>.fa{cursor:inherit}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note:before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip:before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning:before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution:before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important:before{content:"\f06a";color:#bf0000}
+.conum[data-value]{display:inline-block;color:#fff!important;background-color:rgba(0,0,0,.8);-webkit-border-radius:100px;border-radius:100px;text-align:center;font-size:.75em;width:1.67em;height:1.67em;line-height:1.67em;font-family:"Open Sans","DejaVu Sans",sans-serif;font-style:normal;font-weight:bold}
+.conum[data-value] *{color:#fff!important}
+.conum[data-value]+b{display:none}
+.conum[data-value]:after{content:attr(data-value)}
+pre .conum[data-value]{position:relative;top:-.125em}
+b.conum *{color:inherit!important}
+.conum:not([data-value]):empty{display:none}
+dt,th.tableblock,td.content,div.footnote{text-rendering:optimizeLegibility}
+h1,h2,p,td.content,span.alt{letter-spacing:-.01em}
+p strong,td.content strong,div.footnote strong{letter-spacing:-.005em}
+p,blockquote,dt,td.content,span.alt{font-size:1.0625rem}
+p{margin-bottom:1.25rem}
+.sidebarblock p,.sidebarblock dt,.sidebarblock td.content,p.tableblock{font-size:1em}
+.exampleblock>.content{background-color:#fffef7;border-color:#e0e0dc;-webkit-box-shadow:0 1px 4px #e0e0dc;box-shadow:0 1px 4px #e0e0dc}
+.print-only{display:none!important}
+@media print{@page{margin:1.25cm .75cm}
+*{-webkit-box-shadow:none!important;box-shadow:none!important;text-shadow:none!important}
+a{color:inherit!important;text-decoration:underline!important}
+a.bare,a[href^="#"],a[href^="mailto:"]{text-decoration:none!important}
+a[href^="http:"]:not(.bare):after,a[href^="https:"]:not(.bare):after{content:"(" attr(href) ")";display:inline-block;font-size:.875em;padding-left:.25em}
+abbr[title]:after{content:" (" attr(title) ")"}
+pre,blockquote,tr,img,object,svg{page-break-inside:avoid}
+thead{display:table-header-group}
+svg{max-width:100%}
+p,blockquote,dt,td.content{font-size:1em;orphans:3;widows:3}
+h2,h3,#toctitle,.sidebarblock>.content>.title{page-break-after:avoid}
+#toc,.sidebarblock,.exampleblock>.content{background:none!important}
+#toc{border-bottom:1px solid #ddddd8!important;padding-bottom:0!important}
+.sect1{padding-bottom:0!important}
+.sect1+.sect1{border:0!important}
+#header>h1:first-child{margin-top:1.25rem}
+body.book #header{text-align:center}
+body.book #header>h1:first-child{border:0!important;margin:2.5em 0 1em 0}
+body.book #header .details{border:0!important;display:block;padding:0!important}
+body.book #header .details span:first-child{margin-left:0!important}
+body.book #header .details br{display:block}
+body.book #header .details br+span:before{content:none!important}
+body.book #toc{border:0!important;text-align:left!important;padding:0!important;margin:0!important}
+body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-break-before:always}
+.listingblock code[data-lang]:before{display:block}
+#footer{background:none!important;padding:0 .9375em}
+#footer-text{color:rgba(0,0,0,.6)!important;font-size:.9em}
+.hide-on-print{display:none!important}
+.print-only{display:block!important}
+.hide-for-print{display:none!important}
+.show-for-print{display:inherit!important}}
+</style>
+</head>
+<body class="article">
+<div id="header">
+<h1>Adding support for type-based metaprogramming to the standard library</h1>
+<div class="details">
+<span id="author" class="author">Peter Dimov</span><br>
+<span id="email" class="email"><a href="mailto:pdimov@pdimov.com">pdimov@pdimov.com</a></span><br>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+Document Number
+</td>
+<td class="hdlist2">
+<p>P0949R0</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Date
+</td>
+<td class="hdlist2">
+<p>2018-02-11</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Project
+</td>
+<td class="hdlist2">
+<p>Programming Language C++</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Audience
+</td>
+<td class="hdlist2">
+<p>Library Evolution Working Group</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+Summary
+</td>
+<td class="hdlist2">
+<p>This paper proposes adding support for type-based metaprogramming to the standard library, based on Boost.Mp11.</p>
+</td>
+</tr>
+</table>
+</div>
+<div id="toc" class="toc">
+<div id="toctitle" class="title">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_overview">Overview</a></li>
+<li><a href="#_motivation">Motivation</a></li>
+<li><a href="#_proposed_text">Proposed Text</a>
+<ul class="sectlevel2">
+<li><a href="#_type_based_metaprogramming">Type-based metaprogramming</a></li>
+</ul>
+</li>
+<li><a href="#_differences_with_mp11">Differences with Mp11</a></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_overview">Overview</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This paper proposes adding support for type-based metaprogramming to the standard library, based on the Boost library <a href="http://boost.org/libs/mp11">Mp11</a>
+(itself based on the article <a href="http://www.boost.org/libs/mp11/doc/html/simple_cxx11_metaprogramming.html">"Simple C++ metaprogramming"</a> and
+<a href="http://www.boost.org/libs/mp11/doc/html/simple_cxx11_metaprogramming_2.html">its sequel</a>).</p>
+</div>
+<div class="paragraph">
+<p>The fundamental data structure on which the proposed algorithms operate is the <em>list</em>, an instantiation of a class template whose parameters are all
+types. The library does not require or prefer a specific list type. While a canonical <code>mp_list</code> is supplied, its use is not mandatory; all operations
+and algorithms support other lists such as <code>std::tuple</code>, <code>std::variant</code> or even <code>std::pair</code> (when there is no need to add or remove elements).</p>
+</div>
+<div class="paragraph">
+<p>For example, the algorithm for removing the duplicate elements of a list, <code>mp_unique</code>, can be applied directly to <code>std::variant&lt;int, float, int, double&gt;</code>,
+with the result of <code>mp_unique&lt;std::variant&lt;int, float, int, double&gt;&gt;</code> being <code>std::variant&lt;int, float, double&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>Operations that need to transform types take <em>metafunctions</em>, alias or class templates matching <code>template&lt;class&#8230;&#8203;&gt; class F</code>. <code>std::add_pointer_t</code>, for
+instance, is a metafunction and can be used to turn a list of types <code>L</code> into a list to pointers to those types by way of <code>mp_transform&lt;std::add_pointer_t,
+L&gt;</code>. To take a specific example, the result of <code>mp_transform&lt;std::add_pointer_t, std::pair&lt;int, float&gt;&gt;</code> is <code>std::pair&lt;int*, float*&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p>Lists are valid metafunctions. <code>mp_transform&lt;std::pair, std::tuple&lt;int, float, double&gt;, std::tuple&lt;char[1], char[2], char[3]&gt;&gt;</code> results in the transposition
+<code>std::tuple&lt;std::pair&lt;int, char[1]&gt;, std::pair&lt;float, char[2]&gt;, std::pair&lt;double, char[3]&gt;&gt;</code>.</p>
+</div>
+<div class="paragraph">
+<p><em>Quoted metafunctions</em> are types with a public nested metafunction member <code>fn</code>. All operations and algorithms that take a metafunction
+have a corresponding operation or algorithm (with a <code>_q</code> suffix) taking a quoted metafunction. Compared to metafunctions, quoted metafunctions have the
+advantage of being types; this allows their being returned from operations or algorithms (such as <code>mp_bind</code>) and their being stored into lists.</p>
+</div>
+<div class="paragraph">
+<p><code>mp_quote&lt;F&gt;</code> turns the metafunction <code>F</code> into a quoted metafunction (<code>Qf</code>). <code>Qf::template fn</code> does the opposite.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_motivation">Motivation</h2>
+<div class="sectionbody">
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>Any sufficiently complicated C or Fortran program contains an ad-hoc, informally-specified, bug-ridden, slow implementation of half of Common Lisp.</p>
+</div>
+</blockquote>
+<div class="attribution">
+&#8212; Philip Greenspun
+</div>
+</div>
+<div class="paragraph">
+<p>Greenspun&#8217;s famous quote is equally true today if we replace "Common Lisp" with "a metaprogramming library". A standard type-based metaprogramming library
+is badly needed by both users and library implementers. The latter includes standard library implementers; the C++17 additions require significant
+amounts of metaprogramming which effectively means that a subset of the facilities proposed therein already need to be present as an implementation detail. (As
+a further example, the <a href="https://github.com/ericniebler/range-v3">reference implementation</a> of the Ranges TS includes a
+<a href="https://github.com/ericniebler/range-v3/blob/master/include/meta/meta.hpp">full metaprogramming library</a>.)</p>
+</div>
+<div class="paragraph">
+<p>To illustrate the challenges users face, let&#8217;s write the relatively simple function <code>tp_select(cond, tuple1, tuple2)</code> that returns the contents of <code>tuple1</code>
+when <code>cond</code> is <code>true</code> and those of <code>tuple2</code> otherwise:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class Tp1, class Tp2,
+    class R = mp_transform&lt;std::common_type_t, Tp1, Tp2&gt;&gt;
+    R tp_select( bool cond, Tp1 const&amp; tp1, Tp2 const&amp; tp2 )
+{
+    if( cond )
+    {
+        return tp1;
+    }
+    else
+    {
+        return tp2;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Using language features such as pack expansion, we can sometimes avoid using a library, and this is the case here:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T1, class... T2,
+    class R = std::tuple&lt;std::common_type_t&lt;T1, T2&gt;...&gt;
+    R tp_select( bool cond, std::tuple&lt;T1...&gt; const&amp; tp1, std::tuple&lt;T2...&gt; const&amp; tp2 )
+{
+    if( cond )
+    {
+        return tp1;
+    }
+    else
+    {
+        return tp2;
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>But what if we need <code>vt_select</code>, which is the same function, but for variants instead of tuples?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class V1, class V2&gt; V1 vt_convert( V2 const&amp; v2 )
+{
+    return mp_with_index&lt;mp_size&lt;V2&gt;&gt;( v2.index(), [&amp;]( auto I ) -&gt; V1
+    {
+        return std::get&lt;I&gt;( v2 );
+    });
+}
+
+template&lt;class V1, class V2,
+    class R = mp_unique&lt;mp_append&lt;V1, V2&gt;&gt;&gt;
+    R vt_select( bool cond, V1 const&amp; v1, V2 const&amp; v2 )
+{
+    if( cond )
+    {
+        return vt_convert&lt;R&gt;( v1 );
+    }
+    else
+    {
+        return vt_convert&lt;R&gt;( v2 );
+    }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As we can see, even relatively trivial tuple or variant manipulations require metaprogramming.</p>
+</div>
+<div class="paragraph">
+<p>Or consider reflection, which is all about metaprogramming. The canonical type-based reflection proposal by
+Chochlik-Naumann-Sankel states in its overview paper <a href="http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0578r1.html">P0578</a>:</p>
+</div>
+<div class="paragraph">
+<p><em>We assume WG21 will incorporate proper compile-time type lists at some point and consider this a placeholder implementation as well.</em></p>
+</div>
+<div class="paragraph">
+<p>This is for instance how one would print the members of a struct:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class T&gt; void print( T const&amp; t )
+{
+    using members = reflect::get_data_members_t&lt;reflexpr(T)&gt;;
+    using pointers = mp_transform&lt;reflect::get_pointer, members&gt;;
+
+    mp_for_each&lt;pointers&gt;( [&amp;]( auto pm )
+    {
+        std::cout &lt;&lt; t.*pm &lt;&lt; std::endl;
+    });
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>get_data_members_t</code> only gives us the direct data members though, not the inherited ones. What if we wanted to print those as well?</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class T&gt; struct get_all_data_members;
+template&lt;class T&gt; using get_all_data_members_t = typename get_all_data_members&lt;T&gt;::type;
+
+template&lt;class T&gt; struct get_all_data_members
+{
+private:
+
+    using members = reflect::get_data_members_t&lt;T&gt;;
+    using bases = reflect::get_bases_t&lt;T&gt;;
+
+    using inherited_members = mp_apply&lt;mp_append, mp_transform&lt;get_all_data_members_t, bases&gt;&gt;;
+
+public:
+
+    using type = mp_append&lt;members, inherited_members&gt;;
+};</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can now use <code>get_all_data_members_t</code> instead of <code>get_data_members_t</code> in our <code>print</code> function.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_proposed_text">Proposed Text</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p><span class="navy"><em>Add a new subclause in [utilities] with the following contents:</em></span></p>
+</div>
+<div class="sect2">
+<h3 id="_type_based_metaprogramming">Type-based metaprogramming</h3>
+<div class="paragraph">
+<p>This subclause contains facilities enabling compile-time manipulation of types and collections of types.</p>
+</div>
+<div class="sect3">
+<h4 id="_header_type_programming_synopsis">Header &lt;type_programming&gt; synopsis</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>namespace std {
+
+  // integral constants
+
+  template&lt;bool B&gt; using mp_bool = integral_constant&lt;bool, B&gt;;
+  template&lt;int I&gt; using mp_int = integral_constant&lt;int, I&gt;;
+  template&lt;size_t N&gt; using mp_size_t = integral_constant&lt;size_t, N&gt;;
+
+  using mp_true = mp_bool&lt;true&gt;;
+  using mp_false = mp_bool&lt;false&gt;;
+
+  template&lt;class T&gt; using mp_to_bool = mp_bool&lt;static_cast&lt;bool&gt;(T::value)&gt;;
+  template&lt;class T&gt; using mp_not = mp_bool&lt; !T::value &gt;;
+
+  // utility components
+
+  template&lt;class T&gt; struct mp_identity;
+  template&lt;class T&gt; using mp_identity_t = typename mp_identity&lt;T&gt;::type;
+
+  template&lt;class... T&gt; struct mp_inherit;
+
+  template&lt;bool C, class T, class E&gt; using mp_if_c = /*see below*/;
+  template&lt;class C, class T, class E&gt; using mp_if =
+    mp_if_c&lt;static_cast&lt;bool&gt;(C::value), T, E&gt;;
+
+  template&lt;bool C, class T, template&lt;class...&gt; class F, class... U&gt; using mp_eval_if_c =
+    /*see below*/;
+  template&lt;class C, class T, template&lt;class...&gt; class F, class... U&gt; using mp_eval_if =
+    mp_eval_if_c&lt;static_cast&lt;bool&gt;(C::value), T, F, U...&gt;;
+  template&lt;class C, class T, class Q, class... U&gt; using mp_eval_if_q =
+    mp_eval_if&lt;C, T, Q::template fn, U...&gt;;
+
+  template&lt;class C, class T, class... R&gt; using mp_cond = /*see below*/;
+
+  template&lt;template&lt;class...&gt; class F, class... T&gt; using mp_valid = /*see below*/;
+  template&lt;template&lt;class...&gt; class F, class... T&gt; using mp_defer = /*see below*/;
+
+  template&lt;template&lt;class...&gt; class F&gt; struct mp_quote;
+  template&lt;template&lt;class...&gt; class F&gt; struct mp_quote_trait;
+  template&lt;class Q, class... T&gt; using mp_invoke = typename Q::template fn&lt;T...&gt;;
+
+  // list operations
+
+  template&lt;class... T&gt; struct mp_list {};
+
+  template&lt;class T, T... I&gt; using mp_list_c =
+    mp_list&lt;integral_constant&lt;T, I&gt;...&gt;;
+
+  template&lt;class L&gt; using mp_is_list = /*see below*/;
+
+  template&lt;class L&gt; using mp_size = /*see below*/;
+  template&lt;class L&gt; using mp_empty = mp_bool&lt;mp_size&lt;L&gt;::value == 0&gt;;
+
+  template&lt;class L1, class L2&gt; using mp_assign = /*see below*/;
+  template&lt;class L&gt; using mp_clear = mp_assign&lt;L, mp_list&lt;&gt;&gt;;
+
+  template&lt;class L&gt; using mp_front = /*see below*/;
+  template&lt;class L&gt; using mp_pop_front = /*see below*/;
+  template&lt;class L&gt; using mp_first = mp_front&lt;L&gt;;
+  template&lt;class L&gt; using mp_rest = mp_pop_front&lt;L&gt;;
+  template&lt;class L&gt; using mp_second = /*see below*/;
+  template&lt;class L&gt; using mp_third = /*see below*/;
+
+  template&lt;class L, class... T&gt; using mp_push_front = /*see below*/;
+  template&lt;class L, class... T&gt; using mp_push_back = /*see below*/;
+
+  template&lt;class L, template&lt;class...&gt; class Y&gt; using mp_rename = /*see below*/;
+  template&lt;template&lt;class...&gt; class F, class L&gt; using mp_apply = mp_rename&lt;L, F&gt;;
+  template&lt;class Q, class L&gt; using mp_apply_q = mp_apply&lt;Q::template fn, L&gt;;
+
+  template&lt;class... L&gt; using mp_append = /*see below*/;
+
+  template&lt;class L, class T&gt; using mp_replace_front = /*see below*/;
+  template&lt;class L, class T&gt; using mp_replace_first = mp_replace_front&lt;L, T&gt;;
+  template&lt;class L, class T&gt; using mp_replace_second = /*see below*/;
+  template&lt;class L, class T&gt; using mp_replace_third = /*see below*/;
+
+  // algorithms
+
+  template&lt;template&lt;class...&gt; class F, class... L&gt; using mp_transform = /*see below*/;
+  template&lt;class Q, class... L&gt; using mp_transform_q =
+    mp_transform&lt;Q::template fn, L...&gt;;
+  template&lt;template&lt;class...&gt; class P, template&lt;class...&gt; class F, class... L&gt;
+    using mp_transform_if = /*see below*/;
+  template&lt;class Qp, class Qf, class... L&gt; using mp_transform_if_q =
+    mp_transform_if&lt;Qp::template fn, Qf::template fn, L...&gt;;
+
+  template&lt;class L, class V&gt; using mp_fill = /*see below*/;
+
+  template&lt;class L, class V&gt; using mp_count = /*see below*/;
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_count_if = /*see below*/;
+  template&lt;class L, class Q&gt; using mp_count_if_q = mp_count_if&lt;L, Q::template fn&gt;;
+
+  template&lt;class L, class V&gt; using mp_contains = mp_to_bool&lt;mp_count&lt;L, V&gt;&gt;;
+
+  template&lt;class L, size_t N&gt; using mp_repeat_c = /*see below*/;
+  template&lt;class L, class N&gt; using mp_repeat = mp_repeat_c&lt;L, size_t{N::value}&gt;;
+
+  template&lt;template&lt;class...&gt; class F, class... L&gt; using mp_product = /*see below*/;
+  template&lt;class Q, class... L&gt; using mp_product_q = mp_product&lt;Q::template fn, L...&gt;;
+
+  template&lt;class L, size_t N&gt; using mp_drop_c = /*see below*/;
+  template&lt;class L, class N&gt; using mp_drop = mp_drop_c&lt;L, size_t{N::value}&gt;;
+
+  template&lt;class S&gt; using mp_from_sequence = /*see below*/
+  template&lt;size_t N&gt; using mp_iota_c = mp_from_sequence&lt;make_index_sequence&lt;N&gt;&gt;;
+  template&lt;class N&gt; using mp_iota =
+    mp_from_sequence&lt;make_integer_sequence&lt;remove_const_t&lt;decltype(N::value)&gt;, N::value&gt;&gt;;
+
+  template&lt;class L, size_t I&gt; using mp_at_c = /*see below*/;
+  template&lt;class L, class I&gt; using mp_at = mp_at_c&lt;L, size_t{I::value}&gt;;
+
+  template&lt;class L, size_t N&gt; using mp_take_c = /*see below*/;
+  template&lt;class L, class N&gt; using mp_take = mp_take_c&lt;L, size_t{N::value}&gt;;
+
+  template&lt;class L, size_t I, class... T&gt; using mp_insert_c =
+    mp_append&lt;mp_take_c&lt;L, I&gt;, mp_push_front&lt;mp_drop_c&lt;L, I&gt;, T...&gt;&gt;;
+  template&lt;class L, class I, class... T&gt; using mp_insert =
+    mp_append&lt;mp_take&lt;L, I&gt;, mp_push_front&lt;mp_drop&lt;L, I&gt;, T...&gt;&gt;;
+
+  template&lt;class L, size_t I, size_t J&gt; using mp_erase_c =
+    mp_append&lt;mp_take_c&lt;L, I&gt;, mp_drop_c&lt;L, J&gt;&gt;;
+  template&lt;class L, class I, class J&gt; using mp_erase =
+    mp_append&lt;mp_take&lt;L, I&gt;, mp_drop&lt;L, J&gt;&gt;;
+
+  template&lt;class L, class V, class W&gt; using mp_replace = /*see below*/;
+  template&lt;class L, template&lt;class...&gt; class P, class W&gt; using mp_replace_if = /*see below*/;
+  template&lt;class L, class Q, class W&gt; using mp_replace_if_q =
+    mp_replace_if&lt;L, Q::template fn, W&gt;;
+  template&lt;class L, size_t I, class W&gt; using mp_replace_at_c = /*see below*/;
+  template&lt;class L, class I, class W&gt; using mp_replace_at =
+    mp_replace_at_c&lt;L, size_t{I::value}, W&gt;;
+
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_copy_if = /*see below*/;
+  template&lt;class L, class Q&gt; using mp_copy_if_q = mp_copy_if&lt;L, Q::template fn&gt;;
+
+  template&lt;class L, class V&gt; using mp_remove = /*see below*/;
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_remove_if = /*see below*/;
+  template&lt;class L, class Q&gt; using mp_remove_if_q = mp_remove_if&lt;L, Q::template fn&gt;;
+
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_partition = /*see below*/;
+  template&lt;class L, class Q&gt; using mp_partition_q = mp_partition&lt;L, Q::template fn&gt;;
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_sort = /*see below*/;
+  template&lt;class L, class Q&gt; using mp_sort_q = mp_sort&lt;L, Q::template fn&gt;;
+  template&lt;class L, size_t I, template&lt;class...&gt; class P&gt; using mp_nth_element_c =
+    /*see below*/;
+  template&lt;class L, class I, template&lt;class...&gt; class P&gt; using mp_nth_element =
+    mp_nth_element_c&lt;L, size_t{I::value}, P&gt;;
+  template&lt;class L, class I, class Q&gt; using mp_nth_element_q =
+    mp_nth_element&lt;L, I, Q::template fn&gt;;
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_min_element = /*see below*/;
+  template&lt;class L, class Q&gt; using mp_min_element_q = mp_min_element&lt;L, Q::template fn&gt;;
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_max_element = /*see below*/;
+  template&lt;class L, class Q&gt; using mp_max_element_q = mp_max_element&lt;L, Q::template fn&gt;;
+
+  template&lt;class L, class V&gt; using mp_find = /*see below*/;
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_find_if = /*see below*/;
+  template&lt;class L, class Q&gt; using mp_find_if_q = mp_find_if&lt;L, Q::template fn&gt;;
+
+  template&lt;class L&gt; using mp_reverse = /*see below*/;
+
+  template&lt;class L, class V, template&lt;class...&gt; class F&gt; using mp_fold = /*see below*/;
+  template&lt;class L, class V, class Q&gt; using mp_fold_q =
+    mp_fold&lt;L, V, Q::template fn&gt;;
+  template&lt;class L, class V, template&lt;class...&gt; class F&gt; using mp_reverse_fold =
+    /*see below*/;
+  template&lt;class L, class V, class Q&gt; using mp_reverse_fold_q =
+    mp_reverse_fold&lt;L, V, Q::template fn&gt;;
+
+  template&lt;class L&gt; using mp_unique = /*see below*/;
+
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_all_of =
+    mp_bool&lt;mp_count_if&lt;L, P&gt;::value == mp_size&lt;L&gt;::value&gt;;
+  template&lt;class L, class Q&gt; using mp_all_of_q = mp_all_of&lt;L, Q::template fn&gt;;
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_none_of =
+    mp_bool&lt;mp_count_if&lt;L, P&gt;::value == 0&gt;;
+  template&lt;class L, class Q&gt; using mp_none_of_q = mp_none_of&lt;L, Q::template fn&gt;;
+  template&lt;class L, template&lt;class...&gt; class P&gt; using mp_any_of =
+    mp_bool&lt;mp_count_if&lt;L, P&gt;::value != 0&gt;;
+  template&lt;class L, class Q&gt; using mp_any_of_q = mp_any_of&lt;L, Q::template fn&gt;;
+
+  template&lt;class L, class F&gt; constexpr F mp_for_each(F&amp;&amp; f);
+
+  template&lt;size_t N, class F&gt;
+    constexpr auto mp_with_index(size_t i, F&amp;&amp; f)
+      -&gt; decltype(declval&lt;F&gt;()(declval&lt;mp_size_t&lt;0&gt;&gt;()));
+  template&lt;class N, class F&gt;
+    constexpr auto mp_with_index(size_t i, F&amp;&amp; f)
+      -&gt; decltype(declval&lt;F&gt;()(declval&lt;mp_size_t&lt;0&gt;&gt;()));
+
+  // set operations
+
+  template&lt;class S&gt; using mp_is_set = /*see below*/;
+  template&lt;class S, class V&gt; using mp_set_contains = /*see below*/;
+  template&lt;class S, class... T&gt; using mp_set_push_back = /*see below*/;
+  template&lt;class S, class... T&gt; using mp_set_push_front = /*see below*/;
+
+  // map operations
+
+  template&lt;class M&gt; using mp_is_map = /*see below*/;
+  template&lt;class M, class K&gt; using mp_map_find = /*see below*/;
+  template&lt;class M, class K&gt; using mp_map_contains =
+    mp_not&lt;is_same&lt;mp_map_find&lt;M, K&gt;, void&gt;&gt;;
+  template&lt;class M, class T&gt; using mp_map_insert =
+    mp_if&lt;mp_map_contains&lt;M, mp_first&lt;T&gt;&gt;, M, mp_push_back&lt;M, T&gt;&gt;;
+  template&lt;class M, class T&gt; using mp_map_replace = /*see below*/;
+  template&lt;class M, class T, template&lt;class...&gt; class F&gt; using mp_map_update = /*see below*/;
+  template&lt;class M, class T, class Q&gt; using mp_map_update_q =
+    mp_map_update&lt;M, T, Q::template fn&gt;;
+  template&lt;class M, class K&gt; using mp_map_erase = /*see below*/;
+  template&lt;class M&gt; using mp_map_keys = mp_transform&lt;mp_first, M&gt;;
+
+  // helper metafunctions
+
+  template&lt;class... T&gt; using mp_and = /*see below*/;
+  template&lt;class... T&gt; using mp_all = /*see below*/;
+  template&lt;class... T&gt; using mp_or = /*see below*/;
+  template&lt;class... T&gt; using mp_any = /*see below*/;
+  template&lt;class... T&gt; using mp_same = /*see below*/;
+  template&lt;class... T&gt; using mp_plus = /*see below*/;
+  template&lt;class T1, class T2&gt; using mp_less = /*see below*/;
+  template&lt;class T1, class... T&gt; using mp_min = mp_min_element&lt;mp_list&lt;T1, T...&gt;, mp_less&gt;;
+  template&lt;class T1, class... T&gt; using mp_max = mp_max_element&lt;mp_list&lt;T1, T...&gt;, mp_less&gt;;
+
+  // bind
+
+  template&lt;size_t I&gt; struct mp_arg;
+
+  using _1 = mp_arg&lt;0&gt;;
+  using _2 = mp_arg&lt;1&gt;;
+  using _3 = mp_arg&lt;2&gt;;
+  using _4 = mp_arg&lt;3&gt;;
+  using _5 = mp_arg&lt;4&gt;;
+  using _6 = mp_arg&lt;5&gt;;
+  using _7 = mp_arg&lt;6&gt;;
+  using _8 = mp_arg&lt;7&gt;;
+  using _9 = mp_arg&lt;8&gt;;
+
+  template&lt;template&lt;class...&gt; class F, class... T&gt; struct mp_bind;
+  template&lt;class Q, class... T&gt; using mp_bind_q = mp_bind&lt;Q::template fn, T...&gt;;
+  template&lt;template&lt;class...&gt; class F, class... T&gt; struct mp_bind_front;
+  template&lt;class Q, class... T&gt; using mp_bind_front_q =
+    mp_bind_front&lt;Q::template fn, T...&gt;;
+  template&lt;template&lt;class...&gt; class F, class... T&gt; struct mp_bind_back;
+  template&lt;class Q, class... T&gt; using mp_bind_back_q =
+    mp_bind_back&lt;Q::template fn, T...&gt;;
+
+} // namespace std</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_utility_components">Utility Components</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class T&gt; struct mp_identity
+{
+  using type = T;
+};</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; struct mp_inherit: T... {};</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;bool C, class T, class E&gt; using mp_if_c = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>T</code> when <code>C</code> is <code>true</code>, otherwise <code>E</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;bool C, class T, template&lt;class...&gt; class F, class... U&gt; using mp_eval_if_c =
+  /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>T</code> when <code>C</code> is <code>true</code>, otherwise <code>F&lt;U&#8230;&#8203;&gt;</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p><code>F&lt;U&#8230;&#8203;&gt;</code> is not evaluated when <code>C</code> is <code>true</code>. When <code>C</code> is <code>false</code> and
+<code>F&lt;U&#8230;&#8203;&gt;</code> causes a substitution failure, the result is a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class C, class T, class... R&gt; using mp_cond = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>T</code> when <code>static_cast&lt;bool&gt;(C::value)</code> is <code>true</code>, otherwise <code>mp_cond&lt;R&#8230;&#8203;&gt;</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>static_cast&lt;bool&gt;(C::value)</code> causes a substitution failure, the result is a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;int N&gt; using unsigned_ = mp_cond&lt;
+    mp_bool&lt;N ==  8&gt;, uint8_t,
+    mp_bool&lt;N == 16&gt;, uint16_t,
+    mp_bool&lt;N == 32&gt;, uint32_t,
+    mp_bool&lt;N == 64&gt;, uint64_t,
+    mp_true, unsigned // default case
+&gt;;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F, class... T&gt; using mp_valid = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_true</code> when <code>F&lt;T&#8230;&#8203;&gt;</code> is valid, <code>mp_false</code> when <code>F&lt;T&#8230;&#8203;&gt;</code> causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F, class... T&gt; using mp_defer = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<div class="ulist">
+<ul>
+<li>
+<p>when <code>F&lt;T&#8230;&#8203;&gt;</code> is valid,</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>struct <em>unspecified-type-1</em>
+{
+  using type = F&lt;T...&gt;;
+};</code></pre>
+</div>
+</div>
+</li>
+<li>
+<p>when <code>F&lt;T&#8230;&#8203;&gt;</code> causes a substitution failure,</p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>struct <em>unspecified-type-2</em>
+{
+};</code></pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F&gt; struct mp_quote
+{
+  template&lt;class... T&gt; using fn = typename mp_defer&lt;F, T...&gt;::type;
+};</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F&gt; struct mp_quote_trait
+{
+  template&lt;class... T&gt; using fn = typename F&lt;T...&gt;::type;
+};</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_list_operations">List Operations</h4>
+<div class="paragraph">
+<p>A <em>list</em> is an instantiation of a class template whose parameters are all types.</p>
+</div>
+<div class="paragraph">
+<p>[ <em>Note:</em> <code>tuple&lt;int, float&gt;</code> is a <em>list</em>, as are <code>tuple&lt;&gt;</code> and <code>pair&lt;int, float&gt;</code>. So are <code>unique_ptr&lt;int&gt;</code> and <code>string</code>. <em>-- end note</em> ]</p>
+</div>
+<div class="paragraph">
+<p>A <em>list</em> <code>L</code> is said to be of the form <code>K&lt;T&#8230;&#8203;&gt;</code> when, given the hypothetical declarations</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class T&gt; struct X;
+template&lt;template&lt;class...&gt; class K, class... T&gt; struct X&lt;K&lt;T...&gt;&gt;;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>X&lt;L&gt;</code> chooses the partial specialization with appropriate <code>K</code> and <code>T&#8230;&#8203;</code>. (The elements of <code>T&#8230;&#8203;</code> are said to be the elements of <code>L</code>.)</p>
+</div>
+<div class="paragraph">
+<p>[ <em>Note:</em> The elements of <code>unique_ptr&lt;int&gt;</code> are <code>int</code> and <code>default_delete&lt;int&gt;</code>. The elements of <code>string</code> are <code>char</code>, <code>char_traits&lt;char&gt;</code>, <code>allocator&lt;char&gt;</code>. <em>-- end note</em> ]</p>
+</div>
+<div class="paragraph">
+<p>Similarly, a <em>list</em> <code>L</code> is said to be of the form <code>K&lt;T1, T&#8230;&#8203;&gt;</code> when, given the hypothetical declarations</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class T&gt; struct X;
+template&lt;template&lt;class...&gt; class K, class T1, class... T&gt; struct X&lt;K&lt;T1, T...&gt;&gt;;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><code>X&lt;L&gt;</code> chooses the partial specialization with appropriate <code>K</code>, <code>T1</code> and <code>T&#8230;&#8203;</code>.</p>
+</div>
+<div class="paragraph">
+<p>A variadic <em>list</em> is an instantiation of a template of the form <code>template&lt;class&#8230;&#8203;&gt; class L</code>. A fixed-arity <em>list</em> is an instantiation of a template of the form <code>template&lt;class T1, class T2, &#8230;&#8203;, class Tn&gt; class L</code>.</p>
+</div>
+<div class="paragraph">
+<p>As a general rule, operations and algorithms that accept <em>lists</em> and do not need to instantiate a <em>list</em> with the same <em>template-name</em>, but with a different number of arguments, work on fixed-arity <em>lists</em>.</p>
+</div>
+<div class="paragraph">
+<p>[ <em>Note:</em> For example, <code>mp_size</code>, <code>mp_front</code>, <code>mp_replace_front</code>, <code>mp_transform_if</code>, <code>mp_reverse</code>, <code>mp_sort</code> work on fixed-arity <em>lists</em>. <code>mp_pop_front</code>, <code>mp_insert</code>, <code>mp_remove_if</code>, <code>mp_partition</code> do not. <em>-- end note</em> ]</p>
+</div>
+<div class="paragraph">
+<p>The behavior of operations and algorithms that do not work on fixed-arity <em>lists</em> is unspecified if the argument is an instantiation of a class template that has default arguments, such as <code>template&lt;class T1 = void, class T2 = void, &#8230;&#8203;, class Tn = void&gt; class L</code>.</p>
+</div>
+<div class="paragraph">
+<p>[ <em>Note:</em> For such a <em>list</em> <code>L</code>, <code>mp_size&lt;L&gt;</code> remains constant after operations that would ordinarily remove elements, such as <code>mp_pop_front&lt;L&gt;</code>. This causes infinite recursion in recursive algorithm implementations. <em>-- end note</em> ]</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L&gt; using mp_is_list = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_true</code> when <code>L</code> is a <em>list</em>, <code>mp_false</code> otherwise.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L&gt; using mp_size = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>mp_size_t&lt;sizeof&#8230;&#8203;(T)&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = mp_list&lt;&gt;;
+using R1 = mp_size&lt;L1&gt;; // mp_size_t&lt;0&gt;
+
+using L2 = pair&lt;int, int&gt;;
+using R2 = mp_size&lt;L2&gt;; // mp_size_t&lt;2&gt;
+
+using L3 = tuple&lt;float&gt;;
+using R3 = mp_size&lt;L3&gt;; // mp_size_t&lt;1&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L1, class L2&gt; using mp_assign = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L1</code> is a <em>list</em> of the form <code>K1&lt;T1&#8230;&#8203;&gt;</code> and <code>L2</code> is a <em>list</em> of the form <code>K2&lt;T2&#8230;&#8203;&gt;</code>, <code>K1&lt;T2&#8230;&#8203;&gt;</code>. Otherwise, causes
+a substitution failure. [ <em>Note:</em> That is, <code>mp_assign</code> replaces the elements of <code>L1</code> with those of <code>L2</code>. <em>-- end note</em> ]</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;long&gt;;
+using L2 = pair&lt;long, char&gt;;
+using L3 = mp_list&lt;int, float&gt;;
+
+using R1 = mp_assign&lt;L1, L3&gt;; // tuple&lt;int, float&gt;
+using R2 = mp_assign&lt;L2, L3&gt;; // pair&lt;int, float&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L&gt; using mp_front = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T1, T&#8230;&#8203;&gt;</code>, <code>T1</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = pair&lt;int, float&gt;;
+using R1 = mp_front&lt;L1&gt;; // int
+
+using L2 = tuple&lt;float, double, long double&gt;;
+using R2 = mp_front&lt;L2&gt;; // float</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L&gt; using mp_pop_front = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T1, T&#8230;&#8203;&gt;</code>, <code>K&lt;T&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;float, double, long double&gt;;
+using R1 = mp_pop_front&lt;L1&gt;; // tuple&lt;double, long double&gt;
+
+using L2 = mp_list&lt;void&gt;;
+using R2 = mp_pop_front&lt;L2&gt;; // mp_list&lt;&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L&gt; using mp_second = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T1, T2, T&#8230;&#8203;&gt;</code>, <code>T2</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = pair&lt;int, float&gt;;
+using R1 = mp_second&lt;L1&gt;; // float
+
+using L2 = tuple&lt;float, double, long double&gt;;
+using R2 = mp_second&lt;L2&gt;; // double</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L&gt; using mp_third = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T1, T2, T3, T&#8230;&#8203;&gt;</code>, <code>T3</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;float, double, long double&gt;;
+using R1 = mp_third&lt;L1&gt;; // long double
+
+using L2 = mp_list&lt;char[1], char[2], char[3], char[4]&gt;;
+using R2 = mp_third&lt;L2&gt;; // char[3]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class... T&gt; using mp_push_front = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;U&#8230;&#8203;&gt;</code>, <code>K&lt;T&#8230;&#8203;, U&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;double, long double&gt;;
+using R1 = mp_push_front&lt;L1, float&gt;; // tuple&lt;float, double, long double&gt;
+
+using L2 = mp_list&lt;void&gt;;
+using R2 = mp_push_front&lt;L2, char[1], char[2]&gt;; // mp_list&lt;char[1], char[2], void&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class... T&gt; using mp_push_back = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;U&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;, T&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;double, long double&gt;;
+using R1 = mp_push_back&lt;L1, float&gt;; // tuple&lt;double, long double, float&gt;
+
+using L2 = mp_list&lt;void&gt;;
+using R2 = mp_push_back&lt;L2, char[1], char[2]&gt;; // mp_list&lt;void, char[1], char[2]&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class Y&gt; using mp_rename = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>Y&lt;T&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;double, long double&gt;;
+using R1 = mp_rename&lt;L1, pair&gt;; // pair&lt;double, long double&gt;
+
+using L2 = pair&lt;int, float&gt;;
+using R2 = mp_rename&lt;L2, mp_list&gt;; // mp_list&lt;int, float&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... L&gt; using mp_append = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is an empty pack, <code>mp_list&lt;&gt;</code>. When the elements of <code>L</code> are <em>lists</em> of the form <code>L1&lt;T1&#8230;&#8203;&gt;</code>, <code>L2&lt;T2&#8230;&#8203;&gt;</code>, &#8230;&#8203;, <code>Ln&lt;Tn&#8230;&#8203;&gt;</code>, <code>L1&lt;T1&#8230;&#8203;, T2&#8230;&#8203;, &#8230;&#8203;, Tn&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;double, long double&gt;;
+using L2 = mp_list&lt;int&gt;;
+using L3 = pair&lt;short, long&gt;;
+using L4 = mp_list&lt;&gt;;
+
+using R1 = mp_append&lt;L1, L2, L3, L4&gt;;
+  // tuple&lt;double, long double, int, short, long&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class T&gt; using mp_replace_front = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;U1, U&#8230;&#8203;&gt;</code>, <code>K&lt;T, U&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = pair&lt;int, float&gt;;
+using R1 = mp_replace_front&lt;L1, void&gt;; // pair&lt;void, float&gt;
+
+using L2 = tuple&lt;float, double, long double&gt;;
+using R2 = mp_replace_front&lt;L2, void&gt;; // tuple&lt;void, double, long double&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class T&gt; using mp_replace_second = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;U1, U2, U&#8230;&#8203;&gt;</code>, <code>K&lt;U1, T, U&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = pair&lt;int, float&gt;;
+using R1 = mp_replace_second&lt;L1, void&gt;; // pair&lt;int, void&gt;
+
+using L2 = tuple&lt;float, double, long double&gt;;
+using R2 = mp_replace_second&lt;L2, void&gt;; // tuple&lt;float, void, long double&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class T&gt; using mp_replace_third = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;U1, U2, U3, U&#8230;&#8203;&gt;</code>, <code>K&lt;U1, U2, T, U&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;float, double, long double&gt;;
+using R1 = mp_replace_third&lt;L1, void&gt;; // tuple&lt;float, double, void&gt;
+
+using L2 = mp_list&lt;char[1], char[2], char[3], char[4]&gt;;
+using R2 = mp_replace_third&lt;L2, void&gt;; // mp_list&lt;char[1], char[2], void, char[4]&gt;;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_algorithms">Algorithms</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F, class... L&gt; using mp_transform = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is an empty pack, causes a substitution failure.
+When the elements of <code>L</code> are <em>lists</em> of the form <code>L1&lt;T1&#8230;&#8203;&gt;</code>, <code>L2&lt;T2&#8230;&#8203;&gt;</code>, &#8230;&#8203;, <code>Ln&lt;Tn&#8230;&#8203;&gt;</code>, <code>L1&lt;F&lt;T1, T2, &#8230;&#8203;, Tn&gt;&#8230;&#8203;&gt;</code>.
+Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When not all <em>lists</em> are of the same size, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;void, int, float&gt;;
+using L2 = mp_list&lt;void, int, float&gt;;
+
+using R1 = mp_transform&lt;add_pointer_t, L1&gt;; // tuple&lt;void*, int*, float*&gt;
+using R2 = mp_all&lt;mp_transform&lt;is_same, L1, L2&gt;&gt;; // mp_true
+
+template&lt;class T1, class T2&gt; using eq = mp_bool&lt;T1::value == T2::value&gt;;
+
+using L3 = std::tuple&lt;mp_int&lt;1&gt;, mp_int&lt;2&gt;, mp_int&lt;3&gt;&gt;;
+using L4 = mp_list&lt;mp_size_t&lt;1&gt;, mp_size_t&lt;2&gt;, mp_size_t&lt;3&gt;&gt;;
+
+using R3 = mp_all&lt;mp_transform&lt;eq, L3, L4&gt;&gt;; // mp_true
+
+template&lt;class L, class V&gt; using mp_fill =
+  mp_transform_q&lt;mp_bind&lt;mp_identity_t, V&gt;, L&gt;;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class P, template&lt;class...&gt; class F, class... L&gt;
+  using mp_transform_if = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is an empty pack, causes a substitution failure.
+When the elements of <code>L</code> are <em>lists</em> of the form <code>L1&lt;T1&#8230;&#8203;&gt;</code>, <code>L2&lt;T2&#8230;&#8203;&gt;</code>, &#8230;&#8203;, <code>Ln&lt;Tn&#8230;&#8203;&gt;</code>,
+<code>L1&lt;mp_if&lt;P&lt;T1, T2, &#8230;&#8203;, Tn&gt;, T1, F&lt;T1, T2, &#8230;&#8203;, Tn&gt;&gt;&#8230;&#8203;&gt;</code>.
+Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When not all <em>lists</em> are of the same size, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;void, int, float, void, int&gt;;
+using L2 = mp_list&lt;char[1], char[2], char[3], char[4], char[5]&gt;;
+
+template&lt;class T1, class T2&gt; using first_is_void = is_same&lt;T1, void&gt;;
+template&lt;class T1, class T2&gt; using second = T2;
+
+using R1 = mp_transform_if&lt;first_is_void, second, L1, L2&gt;;
+  // tuple&lt;char[1], int, float, char[4], int&gt;
+
+using R2 = mp_transform_if_q&lt;mp_bind&lt;is_same, _1, void&gt;, _2, L1, L2&gt;;
+  // tuple&lt;char[1], int, float, char[4], int&gt;
+
+template&lt;class L, class V, class W&gt; using mp_replace =
+  mp_transform_if_q&lt;mp_bind&lt;is_same, _1, V&gt;, mp_bind&lt;mp_identity_t, W&gt;, L&gt;;
+
+template&lt;class L, size_t I, class W&gt; using mp_replace_at_c =
+  mp_transform_if_q&lt;mp_bind&lt;is_same, _2, mp_size_t&lt;I&gt;&gt;, mp_bind&lt;mp_identity_t, W&gt;,
+    L, mp_iota&lt;mp_size&lt;L&gt;&gt;&gt;;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class V&gt; using mp_fill = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;V, V, &#8230;&#8203;, V&gt;</code>, with the result having the same size as <code>L</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;void, int, float&gt;;
+using R1 = mp_fill&lt;L1, double&gt;; // tuple&lt;double, double, double&gt;
+
+using L2 = pair&lt;int, float&gt;;
+using R2 = mp_fill&lt;L2, void&gt;; // pair&lt;void, void&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class V&gt; using mp_count = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em>, <code>mp_size_t&lt;N&gt;</code>, where <code>N</code> is the number of elements of <code>L</code> same as <code>V</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P&gt; using mp_count_if = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em>, <code>mp_size_t&lt;N&gt;</code>, where <code>N</code> is the number of elements <code>T</code> of <code>L</code> for which <code>mp_to_bool&lt;P&lt;T&gt;&gt;</code> is <code>mp_true</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, size_t N&gt; using mp_repeat_c = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where the pack <code>U&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> repeated <code>N</code> times. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;int&gt;;
+using R1 = mp_repeat_c&lt;L1, 3&gt;; // tuple&lt;int, int, int&gt;
+
+using L2 = pair&lt;int, float&gt;;
+using R2 = mp_repeat_c&lt;L2, 1&gt;; // pair&lt;int, float&gt;
+
+using L3 = mp_list&lt;int, float&gt;;
+using R3 = mp_repeat_c&lt;L3, 2&gt;; // mp_list&lt;int, float, int, float&gt;
+
+using L4 = mp_list&lt;int, float, double&gt;;
+using R4 = mp_repeat_c&lt;L4, 0&gt;; // mp_list&lt;&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F, class... L&gt; using mp_product = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Effects:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_product&lt;F, L1&lt;T1&#8230;&#8203;&gt;, L2&lt;T2&#8230;&#8203;&gt;, &#8230;&#8203;, Ln&lt;Tn&#8230;&#8203;&gt;&gt;</code> evaluates <code>F&lt;U1, U2, &#8230;&#8203;, Un&gt;</code> for values <code>Ui</code> taken from
+ the Cartesian product of the lists, as if the elements <code>Ui</code> are formed by <code>n</code> nested loops, each traversing <code>Li</code>.
+ It returns a list of the form <code>L1&lt;V&#8230;&#8203;&gt;</code> containing the results of the application of <code>F</code>, in order.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When the elements of <code>L</code> aren&#8217;t <em>lists</em>, or when <code>L</code> is an empty pack, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = tuple&lt;short, int, long&gt;;
+using L2 = mp_list&lt;float, double&gt;;
+
+using R1 = mp_product&lt;pair, L1, L2&gt;;
+  // tuple&lt;
+  //   pair&lt;short, float&gt;, pair&lt;short, double&gt;,
+  //   pair&lt;int, float&gt;, pair&lt;int, double&gt;,
+  //   pair&lt;long, float&gt;, pair&lt;long, double&gt;
+  // &gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, size_t N&gt; using mp_drop_c = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code> with at least <code>N</code> elements, <code>K&lt;U&#8230;&#8203;&gt;</code>, where the pack <code>U&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with its first <code>N</code> elements removed. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class S&gt; using mp_from_sequence = /*see below*/</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>S</code> is of the form <code>template&lt;class T, T&#8230;&#8203; I&gt; class</code>, <code>mp_list&lt;integral_constant&lt;T, I&gt;&#8230;&#8203;&gt;</code>. Otherwise, causes a substitution failure.
+[ <em>Note:</em> Types of this form are produced by <code>make_integer_sequence</code>. <em>--end note</em> ]</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, size_t I&gt; using mp_at_c = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code> with at least <code>I+1</code> elements, the element of <code>T&#8230;&#8203;</code> at zero-based index <code>I</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, size_t N&gt; using mp_take_c = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code> with at least <code>N</code> elements, <code>K&lt;U&#8230;&#8203;&gt;</code>, where the pack <code>U&#8230;&#8203;</code> consists of the first <code>N</code> elements of <code>T&#8230;&#8203;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class V, class W&gt; using mp_replace = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where the pack <code>U&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with all <code>V</code> elements replaced with <code>W</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P, class W&gt; using mp_replace_if = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where the pack <code>U&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with all elements <code>U</code> for which <code>mp_to_bool&lt;P&lt;U&gt;&gt;</code> is <code>mp_true</code> replaced with <code>W</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, size_t I, class W&gt; using mp_replace_at_c = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code> with at least <code>I+1</code> elements, <code>K&lt;U&#8230;&#8203;&gt;</code>, where <code>U&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with the element at zero-based index <code>I</code> replaced with <code>W</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P&gt; using mp_copy_if = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where the pack <code>U&#8230;&#8203;</code> consists of those elements <code>V</code> of <code>T&#8230;&#8203;</code> for which <code>mp_to_bool&lt;P&lt;V&gt;&gt;</code> is <code>mp_true</code>, in their original order. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class V&gt; using mp_remove = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where the pack <code>U&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with all <code>V</code> elements removed. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>The order of the remaining elements is preserved.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P&gt; using mp_remove_if = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where the pack <code>U&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with all elements <code>V</code>, for which <code>mp_to_bool&lt;P&lt;V&gt;&gt;</code> is <code>mp_true</code>, removed. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>The order of the remaining elements is preserved.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P&gt; using mp_partition = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;K&lt;U1&#8230;&#8203;&gt;, K&lt;U2&#8230;&#8203;&gt;&gt;</code>, where <code>U1&#8230;&#8203;</code> consists of the elements <code>V</code> of <code>T&#8230;&#8203;</code> for which <code>mp_to_bool&lt;P&lt;V&gt;&gt;</code> is <code>mp_true</code>, and <code>U2&#8230;&#8203;</code> consists of the remaining elements of <code>T&#8230;&#8203;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>The order of the elements is preserved.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P&gt; using mp_sort = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where <code>U&#8230;&#8203;</code> consists of the elements of <code>T&#8230;&#8203;</code> sorted according to the strict weak ordering <code>mp_to_bool&lt;P&lt;T1, T2&gt;&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>mp_to_bool&lt;P&lt;T1, T2&gt;&gt;</code> is not a strict weak ordering over the elements of <code>T&#8230;&#8203;</code>, the program remains well-formed, but the result of <code>mp_sort</code> is unspecified.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = mp_list&lt;ratio&lt;1,2&gt;, ratio&lt;1,4&gt;, ratio&lt;1,3&gt;&gt;;
+using R1 = mp_sort&lt;L1, ratio_less&gt;; // mp_list&lt;ratio&lt;1,4&gt;, ratio&lt;1,3&gt;, ratio&lt;1,2&gt;&gt;
+
+using L2 = pair&lt;mp_size_t&lt;0&gt;, mp_int&lt;-1&gt;&gt;;
+using R2 = mp_sort&lt;L2, mp_less&gt;; // pair&lt;mp_int&lt;-1&gt;, mp_size_t&lt;0&gt;&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, size_t I, template&lt;class...&gt; class P&gt; using mp_nth_element_c =
+  /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code> with at least <code>I+1</code> elements, <code>mp_at_c&lt;mp_sort&lt;L, P&gt;, I&gt;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_nth_element_c</code> is not required to evaluate <code>mp_at_c&lt;mp_sort&lt;L, P&gt;, I&gt;</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P&gt; using mp_min_element = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_fold&lt;mp_rest&lt;L&gt;, mp_first&lt;L&gt;, F&gt;</code>, where <code>F&lt;T, U&gt;</code> returns <code>mp_if&lt;P&lt;T, U&gt;, T, U&gt;</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P&gt; using mp_max_element = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_fold&lt;mp_rest&lt;L&gt;, mp_first&lt;L&gt;, F&gt;</code>, where <code>F&lt;T, U&gt;</code> returns <code>mp_if&lt;P&lt;U, T&gt;, T, U&gt;</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class V&gt; using mp_find = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>mp_size_t&lt;I&gt;</code>, where <code>I</code> is the zero-based index of the first occurrence of <code>V</code> in <code>T&#8230;&#8203;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>V</code> does not appear in <code>T&#8230;&#8203;</code>, the result is <code>mp_size&lt;L&gt;</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, template&lt;class...&gt; class P&gt; using mp_find_if = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>mp_size_t&lt;I&gt;</code>, where <code>I</code> is the zero-based index of the first element <code>V</code> in <code>T&#8230;&#8203;</code> for which <code>mp_to_bool&lt;P&lt;V&gt;&gt;</code> is <code>mp_true</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When such an element does not appear in <code>T&#8230;&#8203;</code>, the result is <code>mp_size&lt;L&gt;</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L&gt; using mp_reverse = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where <code>U&#8230;&#8203;</code> are the elements of <code>T&#8230;&#8203;</code> in reverse order. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = mp_list&lt;int, void, float&gt;;
+using R1 = mp_reverse&lt;L1&gt;; // mp_list&lt;float, void, int&gt;
+
+using L2 = pair&lt;int, float&gt;;
+using R2 = mp_reverse&lt;L2&gt;; // pair&lt;float, int&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class V, template&lt;class...&gt; class F&gt; using mp_fold = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>F&lt; F&lt; F&lt; F&lt;V, T1&gt;, T2&gt;, &#8230;&#8203;&gt;, Tn&gt;</code>, where <code>Ti</code> are the elements of <code>T&#8230;&#8203;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>T&#8230;&#8203;</code> is an empty pack, the result is <code>V</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using L1 = mp_list&lt;ratio&lt;1,8&gt;, ratio&lt;1,4&gt;, ratio&lt;1,2&gt;&gt;;
+using R1 = mp_fold&lt;L1, ratio&lt;0,1&gt;, ratio_add&gt;; // ratio&lt;7,8&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class V, template&lt;class...&gt; class F&gt; using mp_reverse_fold =
+  /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>F&lt;T1, F&lt;T2, F&lt;&#8230;&#8203;, F&lt;Tn, V&gt;&gt;&gt;&gt;</code>, where <code>Ti</code> are the elements of <code>T&#8230;&#8203;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>T&#8230;&#8203;</code> is an empty pack, the result is <code>V</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L&gt; using mp_unique = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is a <em>list</em> of the form <code>K&lt;T&#8230;&#8203;&gt;</code>, <code>K&lt;U&#8230;&#8203;&gt;</code>, where <code>U&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with the duplicate elements removed. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>The order of elements is preserved.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class L, class F&gt; constexpr F mp_for_each(F&amp;&amp; f);</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Effects:</em>
+</td>
+<td class="hdlist2">
+<p>Calls <code>f</code> with <code>T()</code> for each element <code>T</code> of the <em>list</em> <code>L</code>, in order.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>std::forward&lt;F&gt;(f)</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>L</code> is not a <em>list</em>, the program is ill-formed.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; void print( std::tuple&lt;T...&gt; const &amp; tp )
+{
+    std::size_t const N = sizeof...(T);
+
+    mp_for_each&lt;mp_iota_c&lt;N&gt;&gt;( [&amp;]( auto I ){
+
+        // I is mp_size_t&lt;0&gt;, mp_size_t&lt;1&gt;, ..., mp_size_t&lt;N-1&gt;
+
+        std::cout &lt;&lt; std::get&lt;I&gt;(tp) &lt;&lt; std::endl;
+
+    });
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;size_t N, class F&gt;
+  constexpr auto mp_with_index(size_t i, F&amp;&amp; f)
+    -&gt; decltype(declval&lt;F&gt;()(declval&lt;mp_size_t&lt;0&gt;&gt;()));</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Requires:</em>
+</td>
+<td class="hdlist2">
+<p><code>i</code> &lt; <code>N</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>std::forward&lt;F&gt;(f)(mp_size_t&lt;I&gt;())</code>, where <code>I</code> == <code>i</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; void print( std::variant&lt;T...&gt; const&amp; v )
+{
+    mp_with_index&lt;sizeof...(T)&gt;( v.index(), [&amp;]( auto I ) {
+
+        // I is mp_size_t&lt;v.index()&gt; here
+
+        std::cout &lt;&lt; std::get&lt;I&gt;( v ) &lt;&lt; std::endl;
+
+    });
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class N, class F&gt;
+  constexpr auto mp_with_index(size_t i, F&amp;&amp; f)
+    -&gt; decltype(declval&lt;F&gt;()(declval&lt;mp_size_t&lt;0&gt;&gt;()));</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_with_index&lt;N::value&gt;(i, f)</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_set_operations">Set Operations</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class S&gt; using mp_is_set = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>S</code> is a <em>list</em> of the form <code>L&lt;T&#8230;&#8203;&gt;</code> and all elements of <code>T&#8230;&#8203;</code> are distinct, <code>mp_true</code>. Otherwise, <code>mp_false</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class S, class V&gt; using mp_set_contains = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>S</code> is a <em>list</em> of the form <code>L&lt;T&#8230;&#8203;&gt;</code>, <code>mp_true</code> when <code>V</code> occurs in <code>T&#8230;&#8203;</code>, else <code>mp_false</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>T&#8230;&#8203;</code> contains duplicates, the program is ill-formed.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class S, class... T&gt; using mp_set_push_back = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>S</code> is a <em>list</em> of the form <code>L&lt;U&#8230;&#8203;&gt;</code>, <code>L&lt;U&#8230;&#8203;, V&#8230;&#8203;&gt;</code>, where <code>V&#8230;&#8203;</code> are the elements of <code>T&#8230;&#8203;</code> that do not occur in <code>U&#8230;&#8203;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>The order of the appended elements is preserved. When <code>U&#8230;&#8203;</code> contains duplicates, the program is ill-formed.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class S, class... T&gt; using mp_set_push_front = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>S</code> is a <em>list</em> of the form <code>L&lt;U&#8230;&#8203;&gt;</code>, <code>L&lt;V&#8230;&#8203;, U&#8230;&#8203;&gt;</code>, where <code>V&#8230;&#8203;</code> are the elements of <code>T&#8230;&#8203;</code> that do not occur in <code>U&#8230;&#8203;</code>. Otherwise, causes a substitution failure.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>The order of the prepended elements is preserved. When <code>U&#8230;&#8203;</code> contains duplicates, the program is ill-formed.</p>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_map_operations">Map Operations</h4>
+<div class="paragraph">
+<p>A type <code>M</code> is a <em>map</em> when</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>M</code> is a <em>list</em>, of the form <code>L&lt;T&#8230;&#8203;&gt;</code>;</p>
+</li>
+<li>
+<p>All elements of <code>T&#8230;&#8203;</code> are <em>lists</em> of at least one element, of the form <code>Li&lt;Ui, Vi&#8230;&#8203;&gt;</code>;</p>
+</li>
+<li>
+<p>All <code>Ui</code> are distinct types.</p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class M&gt; using mp_is_map = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>M</code> is a <em>map</em>, <code>mp_true</code>. Otherwise, <code>mp_false</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class M, class K&gt; using mp_map_find = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>Given <code>M</code> of the form <code>L&lt;T&#8230;&#8203;&gt;</code>, if <code>T&#8230;&#8203;</code> contains an element <code>U</code> such that <code>first&lt;U&gt;</code> is <code>K</code>, <code>U</code>, otherwise <code>void</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>M</code> is not a <em>map</em>, the program is ill-formed.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class M, class T&gt; using mp_map_replace = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>Given <code>M</code> of the form <code>L&lt;U&#8230;&#8203;&gt;</code>, if <code>U&#8230;&#8203;</code> contains an element <code>V</code> such that <code>first&lt;V&gt;</code> is <code>first&lt;T&gt;</code>, <code>L&lt;W&#8230;&#8203;&gt;</code>, where <code>W&#8230;&#8203;</code> is <code>U&#8230;&#8203;</code> with <code>V</code> replaced with <code>T</code>, otherwise <code>L&lt;U&#8230;&#8203;, T&gt;</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>M</code> is not a <em>map</em>, the program is ill-formed.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class M, class T, template&lt;class...&gt; class F&gt; using mp_map_update = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>Given <code>M</code> of the form <code>L&lt;U&#8230;&#8203;&gt;</code>, if <code>U&#8230;&#8203;</code> contains an element <code>K&lt;V1, V&#8230;&#8203;&gt;</code> such that <code>V1</code> is <code>first&lt;T&gt;</code>, <code>L&lt;W&#8230;&#8203;&gt;</code>, where <code>W&#8230;&#8203;</code> is <code>U&#8230;&#8203;</code> with <code>K&lt;V1, V&#8230;&#8203;&gt;</code> replaced with <code>K&lt;V1, F&lt;V1, V&#8230;&#8203;&gt;&gt;</code>, otherwise <code>L&lt;U&#8230;&#8203;, T&gt;</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>M</code> is not a <em>map</em>, the program is ill-formed.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class T, class U&gt; using inc2nd = mp_int&lt;U::value + 1&gt;;
+
+template&lt;class M, class T&gt; using count_types =
+    mp_map_update&lt;M, pair&lt;T, mp_int&lt;1&gt;&gt;, inc2nd&gt;;
+
+using L1 = mp_list&lt;float, char, float, float, float, float, char, float&gt;;
+
+using R1 = mp_fold&lt;L1, tuple&lt;&gt;, count_types&gt;;
+// tuple&lt;pair&lt;float, mp_int&lt;6&gt;&gt;, pair&lt;char, mp_int&lt;2&gt;&gt;&gt;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class M, class K&gt; using mp_map_erase = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p>Given <code>M</code> of the form <code>L&lt;T&#8230;&#8203;&gt;</code>, if <code>T&#8230;&#8203;</code> contains an element <code>U</code> such that <code>first&lt;U&gt;</code> is <code>K</code>, <code>L&lt;V&#8230;&#8203;&gt;</code>, where <code>V&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with <code>U</code> removed, otherwise <code>M</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p>When <code>M</code> is not a <em>map</em>, the program is ill-formed.</p>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_helper_metafunctions">Helper Metafunctions</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; using mp_and = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Effects:</em>
+</td>
+<td class="hdlist2">
+<p>Applies <code>mp_to_bool</code> to the types in <code>T&#8230;&#8203;</code>, in order. If the result of an application is <code>mp_false</code>,
+returns <code>mp_false</code>. If the application causes a substitution failure, returns <code>mp_false</code>. If all results are <code>mp_true</code>,
+returns <code>mp_true</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_and&lt;&gt;</code> is <code>mp_true</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using R1 = mp_and&lt;mp_true, mp_true&gt;;   // mp_true
+using R2 = mp_and&lt;mp_false, void&gt;;     // mp_false, void is not reached
+using R3 = mp_and&lt;mp_false, mp_false&gt;; // mp_false
+using R4 = mp_and&lt;void, mp_true&gt;;      // mp_false (!)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; using mp_all = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_bool&lt;(static_cast&lt;bool&gt;(T::value) &amp;&amp; &#8230;&#8203;)&gt;</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_all&lt;&gt;</code> is <code>mp_true</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using R1 = mp_all&lt;mp_true, mp_true&gt;;   // mp_true
+using R2 = mp_all&lt;mp_false, void&gt;;     // ill-formed
+using R3 = mp_all&lt;mp_false, mp_false&gt;; // mp_false
+using R4 = mp_all&lt;void, mp_true&gt;;      // ill-formed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; using mp_or = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Effects:</em>
+</td>
+<td class="hdlist2">
+<p>Applies <code>mp_to_bool</code> to the types in <code>T&#8230;&#8203;</code>, in order. If the result of an application is <code>mp_true</code>,
+returns <code>mp_true</code>. If all results are <code>mp_false</code>, returns <code>mp_false</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_or&lt;&gt;</code> is <code>mp_false</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using R1 = mp_or&lt;mp_true, mp_false&gt;;   // mp_true
+using R2 = mp_or&lt;mp_true, void&gt;;       // mp_true, void is not reached
+using R3 = mp_or&lt;mp_false, mp_false&gt;;  // mp_false
+using R4 = mp_or&lt;void, mp_true&gt;;       // ill-formed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; using mp_any = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_bool&lt;(static_cast&lt;bool&gt;(T::value) || &#8230;&#8203;)&gt;</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_any&lt;&gt;</code> is <code>mp_false</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Example:</em></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>using R1 = mp_any&lt;mp_true, mp_false&gt;;  // mp_true
+using R2 = mp_any&lt;mp_true, void&gt;;      // ill-formed
+using R3 = mp_any&lt;mp_false, mp_false&gt;; // mp_false
+using R4 = mp_any&lt;void, mp_true&gt;;      // ill-formed</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><em>-- end example</em> ].</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; using mp_same = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_true</code> when all types in <code>T&#8230;&#8203;</code> are the same, <code>mp_false</code> otherwise.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_same&lt;&gt;</code> is <code>mp_true</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... T&gt; using mp_plus = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>integral_constant&lt;V, v&gt;</code>, where <code>v</code> is <code>(T::value + &#8230;&#8203; + 0)</code> and <code>V</code> is the type of <code>v</code>.</p>
+</td>
+</tr>
+<tr>
+<td class="hdlist1">
+<em>Remarks:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_plus&lt;&gt;</code> is <code>mp_int&lt;0&gt;</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class T1, class T2&gt; using mp_less = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>mp_true</code> when the numeric value of <code>T1::value</code> is less than the numeric value of <code>T2::value</code>, <code>mp_false</code> otherwise.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>[ <em>Note:</em> <code>mp_less&lt;T1, T2&gt;</code> is not necessarily the same as <code>mp_bool&lt;(T1::value &lt; T2::value)&gt;</code> when comparing between signed and unsigned types;
+<code>-1 &lt; 1u</code> is <code>false</code>, but <code>mp_less&lt;mp_int&lt;-1&gt;, mp_size_t&lt;1&gt;&gt;</code> is <code>mp_true</code>. <em>-- end note</em> ]</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_bind">Bind</h4>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;size_t I&gt; struct mp_arg
+{
+  template&lt;class... T&gt; using fn = mp_at_c&lt;mp_list&lt;T...&gt;, I&gt;;
+};</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F, class... T&gt; struct mp_bind
+{
+  template&lt;class... U&gt; using fn = /*see below*/;
+};</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;class... U&gt; using fn = /*see below*/;</code></pre>
+</div>
+</div>
+<div class="hdlist">
+<table>
+<tr>
+<td class="hdlist1">
+<em>Returns:</em>
+</td>
+<td class="hdlist2">
+<p><code>F&lt;V&#8230;&#8203;&gt;</code>, where <code>V&#8230;&#8203;</code> is <code>T&#8230;&#8203;</code> with the elements <code>W</code> that are instantiations of <code>mp_arg</code> or <code>mp_bind</code> replaced with <code>typename W::template fn&lt;U&#8230;&#8203;&gt;</code>.</p>
+</td>
+</tr>
+</table>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F, class... T&gt; struct mp_bind_front
+{
+  template&lt;class... U&gt; using fn = typename mp_defer&lt;F, T..., U...&gt;::type;
+};</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>template&lt;template&lt;class...&gt; class F, class... T&gt; struct mp_bind_back
+{
+  template&lt;class... U&gt; using fn = typename mp_defer&lt;F, U..., T...&gt;::type;
+};</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_differences_with_mp11">Differences with Mp11</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The two-argument form of <code>mp_if</code> has been removed; it&#8217;s equivalent to <code>std::enable_if_t</code> and is only present in Mp11 because <code>enable_if_t</code> requires C++14.</p>
+</div>
+<div class="paragraph">
+<p><code>mp_void</code> has been removed; it&#8217;s equivalent to <code>std::void_t</code> and is supplied in Mp11 because <code>void_t</code> requires C++17.</p>
+</div>
+<div class="paragraph">
+<p>Mp11&#8217;s integer sequences are already part of C++14.</p>
+</div>
+<div class="paragraph">
+<p>Mp11&#8217;s tuple operations are either (<code>tuple_apply</code>, <code>construct_from_tuple</code>) already part of C++17, or (<code>tuple_for_each</code>) out of scope and potentially a subject of a separate paper.</p>
+</div>
+<div class="openblock">
+<div class="content">
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footer">
+<div id="footer-text">
+Last updated 2018-02-11 19:00:21 GTBST
+</div>
+</div>
+</body>
+</html>
