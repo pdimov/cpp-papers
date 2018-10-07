@@ -644,7 +644,7 @@ bool operator&lt; (const error_condition&amp; lhs, const error_condition&amp; rh
   class error_category {
   public:
     constexpr error_category() noexcept;
-    virtual ~error_category() <span class="underline  green">= default()</span>;
+    virtual ~error_category() <span class="underline  green">= default</span>;
     error_category(const error_category&amp;) = delete;
     error_category&amp; operator=(const error_category&amp;) = delete;
     virtual const char* name() const noexcept = 0;
@@ -1182,7 +1182,7 @@ for old clients that link to it.</p>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-10-04 16:50:22 GTBDT
+Last updated 2018-10-07 17:30:52 GTBDT
 </div>
 </div>
 </body>
