@@ -105,7 +105,7 @@ namespace std {
   class error_category {
   public:
     constexpr error_category() noexcept;
-    virtual ~error_category() [.underline .green]#= default()#;
+    virtual ~error_category() [.underline .green]#= default#;
     error_category(const error_category&) = delete;
     error_category& operator=(const error_category&) = delete;
     virtual const char* name() const noexcept = 0;
