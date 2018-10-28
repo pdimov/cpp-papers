@@ -3,7 +3,7 @@ Peter Dimov <pdimov@pdimov.com>, Vassil Vassilev <vvasilev@cern.ch>
 :toc: macro
 
 [horizontal]
-Document Number:: PxxxxR0
+Document Number:: D1327R0
 Date:: 2018-10-28
 Project:: Programming Language C++
 Audience:: Evolution Working Group

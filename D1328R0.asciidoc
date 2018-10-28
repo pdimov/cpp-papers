@@ -3,7 +3,7 @@ Peter Dimov <pdimov@pdimov.com>
 :toc: macro
 
 [horizontal]
-Document Number:: PxxxxR0
+Document Number:: D1328R0
 Date:: 2018-10-28
 Project:: Programming Language C++
 Audience:: Evolution Working Group
@@ -14,9 +14,9 @@ toc::[]
 ## Summary
 
 `typeid` (with the exception of its application on polymorphic glvalues, a
-restriction that Pxxxx proposes to lift) is currently allowed in constant
-expressions, but the resulting `std::type_info` object is unusable as it has
-no `constexpr` member functions.
+restriction that https://wg21.link/p1327r0[P1327] proposes to lift) is
+currently allowed in constant expressions, but the resulting `std::type_info`
+object is unusable as it has no `constexpr` member functions.
 
 This paper proposes `std::type_info::operator==` and `operator!=` be made
 `constexpr`, enabling practical, rather than theoretical, use of `typeid`
