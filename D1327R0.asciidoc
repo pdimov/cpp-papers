@@ -1,0 +1,68 @@
+﻿# Allowing `dynamic_cast`, polymorphic `typeid` in Constant Expressions
+Peter Dimov <pdimov@pdimov.com>, Vassil Vassilev <vvasilev@cern.ch>
+:toc: macro
+
+[horizontal]
+Document Number:: D1327R0
+Date:: 2018-10-28
+Project:: Programming Language C++
+Audience:: Evolution Working Group
+Summary:: This paper proposes allowing `dynamic_cast` and polymorphic `typeid` in constant expressions.
+
+toc::[]
+
+## Summary
+
+https://wg21.link/p1064r0[P1064], accepted at Rapperswil, relaxed the
+restriction of virtual function calls in constant expressions. These are
+now allowed, a capability made possible by the fact that compilers are
+effectively required to track the dynamic type of constant expressions.
+
+It would be natural, for the same underlying reasons, to also drop the
+restriction of `dynamic_cast` and `typeid` (applied to polymorphic glvalues)
+not appearing in constant expressions. P1064 mentions this in its Further
+Work section, and it is our impression that the EWG in Rapperswil was
+generally approving of the idea.
+
+We conservatively did not propose this in P1064 (our mistake) because we did
+not have a motivating example, but we do now.
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4778.)_#
+
+[.navy]#_Remove the 2.15, 2.19 bullets of 7.7 [expr.const] p2:_#
+
+[.red .line-through]#(2.15) -- a dynamic cast (7.6.1.7);#
+
+[.red .line-through]#(2.19) -- a typeid expression (7.6.1.8) whose operand is a glvalue of a polymorphic class type;#
+
+## Motivating Example
+
+The papers https://wg21.link/p1196r0[P1196], https://wg21.link/p1197r0[P1197],
+https://wg21.link/p1198r0[P1198] all propose improvements to
+`std::error_category` that add new members (P1196) or new virtual functions
+(P1197, P1198) to it.
+
+Unfortunately, changing a standard polymorphic type is an ABI break, and
+library implementers are increasingly unwilling to break ABI even in small
+quantities.
+
+This presents a significant and frustrating obstacle to our efforts to evolve
+and improve the standard library.
+
+One alternative approach is to avoid changing `std::error_category`, but
+instead derive `std::error_category_v2` from it, which could now hold the
+additional members and virtuals.
+
+With this done, `std::error_code` could use `dynamic_cast` to check whether
+it has been constructed from a "new" category, and adjust accordingly.
+
+This, however, clashes with the proposal in https://wg21.link/p1195r0[P1195]
+to add `constexpr` to `error_code` and friends. We're again forced to choose
+between one desirable improvement and another, and can't have nice things.
+
+The ability to use `dynamic_cast` in constant expressions will solve this
+problem.
+
+_-- end_
