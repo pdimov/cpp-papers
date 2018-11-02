@@ -5,8 +5,8 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.7">
-<meta name="author" content="Peter Dimov &lt;pdimov@pdimov.com&gt;, Vassil Vassilev &lt;vvasilev@cern.ch&gt;">
-<title>Allowing dynamic_cast, polymorphic typeid in Constant Expressions</title>
+<meta name="author" content="Peter Dimov">
+<title>Making std::type_info::operator== constexpr</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -433,9 +433,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article">
 <div id="header">
-<h1>Allowing <code>dynamic_cast</code>, polymorphic <code>typeid</code> in Constant Expressions</h1>
+<h1>Making <code>std::type_info::operator==</code> <code>constexpr</code></h1>
 <div class="details">
-<span id="author" class="author">Peter Dimov &lt;pdimov@pdimov.com&gt;, Vassil Vassilev &lt;vvasilev@cern.ch&gt;</span><br>
+<span id="author" class="author">Peter Dimov</span><br>
+<span id="email" class="email"><a href="mailto:pdimov@pdimov.com">pdimov@pdimov.com</a></span><br>
 </div>
 </div>
 <div id="content">
@@ -448,7 +449,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 Document Number
 </td>
 <td class="hdlist2">
-<p>D1327R0</p>
+<p>P1328R0</p>
 </td>
 </tr>
 <tr>
@@ -480,7 +481,7 @@ Audience
 Summary
 </td>
 <td class="hdlist2">
-<p>This paper proposes allowing <code>dynamic_cast</code> and polymorphic <code>typeid</code> in constant expressions.</p>
+<p>This paper proposes making <code>std::type_info::operator==</code> and <code>operator!=</code> <code>constexpr</code>.</p>
 </td>
 </tr>
 </table>
@@ -490,7 +491,6 @@ Summary
 <ul class="sectlevel1">
 <li><a href="#_summary">Summary</a></li>
 <li><a href="#_proposed_changes">Proposed Changes</a></li>
-<li><a href="#_motivating_example">Motivating Example</a></li>
 </ul>
 </div>
 </div>
@@ -499,21 +499,15 @@ Summary
 <h2 id="_summary">Summary</h2>
 <div class="sectionbody">
 <div class="paragraph">
-<p><a href="https://wg21.link/p1064r0">P1064</a>, accepted at Rapperswil, relaxed the
-restriction of virtual function calls in constant expressions. These are
-now allowed, a capability made possible by the fact that compilers are
-effectively required to track the dynamic type of constant expressions.</p>
+<p><code>typeid</code> (with the exception of its application on polymorphic glvalues, a
+restriction that <a href="https://wg21.link/p1327r0">P1327</a> proposes to lift) is
+currently allowed in constant expressions, but the resulting <code>std::type_info</code>
+object is unusable as it has no <code>constexpr</code> member functions.</p>
 </div>
 <div class="paragraph">
-<p>It would be natural, for the same underlying reasons, to also drop the
-restriction of <code>dynamic_cast</code> and <code>typeid</code> (applied to polymorphic glvalues)
-not appearing in constant expressions. P1064 mentions this in its Further
-Work section, and it is our impression that the EWG in Rapperswil was
-generally approving of the idea.</p>
-</div>
-<div class="paragraph">
-<p>We conservatively did not propose this in P1064 (our mistake) because we did
-not have a motivating example, but we do now.</p>
+<p>This paper proposes <code>std::type_info::operator==</code> and <code>operator!=</code> be made
+<code>constexpr</code>, enabling practical, rather than theoretical, use of <code>typeid</code>
+in constant expressions.</p>
 </div>
 </div>
 </div>
@@ -524,61 +518,50 @@ not have a motivating example, but we do now.</p>
 <p><span class="navy"><em>(All edits are relative to N4778.)</em></span></p>
 </div>
 <div class="paragraph">
-<p><span class="navy"><em>Remove the 2.15, 2.19 bullets of 7.7 [expr.const] p2:</em></span></p>
+<p><span class="navy"><em>Change 16.7.2 [type.info] as follows:</em></span></p>
 </div>
-<div class="paragraph">
-<p><span class="red  line-through">(2.15)&#8201;&#8212;&#8201;a dynamic cast (7.6.1.7);</span></p>
+<div class="ulist none">
+<ul class="none">
+<li>
+<p></p>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>namespace std {
+  class type_info {
+  public:
+    virtual ~type_info();
+    <span class="underline  green">constexpr</span> bool operator==(const type_info&amp; rhs) const noexcept;
+    <span class="underline  green">constexpr</span> bool operator!=(const type_info&amp; rhs) const noexcept;
+    size_t hash_code() const noexcept;
+    const char* name() const noexcept;
+    type_info(const type_info&amp; rhs) = delete; // cannot be copied
+    type_info&amp; operator=(const type_info&amp; rhs) = delete; // cannot be copied
+  };
+}</code></pre>
 </div>
-<div class="paragraph">
-<p><span class="red  line-through">(2.19)&#8201;&#8212;&#8201;a typeid expression (7.6.1.8) whose operand is a glvalue of a polymorphic class type;</span></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code><span class="underline  green">constexpr</span> bool operator==(const type_info&amp; rhs) const noexcept;</code></pre>
 </div>
 </div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code><span class="underline  green">constexpr</span> bool operator!=(const type_info&amp; rhs) const noexcept;</code></pre>
 </div>
-<div class="sect1">
-<h2 id="_motivating_example">Motivating Example</h2>
-<div class="sectionbody">
-<div class="paragraph">
-<p>The papers <a href="https://wg21.link/p1196r0">P1196</a>, <a href="https://wg21.link/p1197r0">P1197</a>,
-<a href="https://wg21.link/p1198r0">P1198</a> all propose improvements to
-<code>std::error_category</code> that add new members (P1196) or new virtual functions
-(P1197, P1198) to it.</p>
-</div>
-<div class="paragraph">
-<p>Unfortunately, changing a standard polymorphic type is an ABI break, and
-library implementers are increasingly unwilling to break ABI even in small
-quantities.</p>
-</div>
-<div class="paragraph">
-<p>This presents a significant and frustrating obstacle to our efforts to evolve
-and improve the standard library.</p>
-</div>
-<div class="paragraph">
-<p>One alternative approach is to avoid changing <code>std::error_category</code>, but
-instead derive <code>std::error_category_v2</code> from it, which could now hold the
-additional members and virtuals.</p>
-</div>
-<div class="paragraph">
-<p>With this done, <code>std::error_code</code> could use <code>dynamic_cast</code> to check whether
-it has been constructed from a "new" category, and adjust accordingly.</p>
-</div>
-<div class="paragraph">
-<p>This, however, clashes with the proposal in <a href="https://wg21.link/p1195r0">P1195</a>
-to add <code>constexpr</code> to <code>error_code</code> and friends. We&#8217;re again forced to choose
-between one desirable improvement and another, and can&#8217;t have nice things.</p>
-</div>
-<div class="paragraph">
-<p>The ability to use <code>dynamic_cast</code> in constant expressions will solve this
-problem.</p>
 </div>
 <div class="paragraph">
 <p><em>-- end</em></p>
+</div>
+</li>
+</ul>
 </div>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2018-10-28 23:57:09 GTBST
+Last updated 2018-11-02 19:17:40 GTBST
 </div>
 </div>
 </body>
