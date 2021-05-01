@@ -1,0 +1,59 @@
+﻿# Making `std::type_info::operator==` `constexpr`
+Peter Dimov <pdimov@pdimov.com>
+:toc: macro
+
+[horizontal]
+Document Number:: P1328R0
+Date:: 2018-10-28
+Project:: Programming Language C++
+Audience:: Evolution Working Group
+Summary:: This paper proposes making `std::type_info::operator==` and `operator!=` `constexpr`.
+
+toc::[]
+
+## Summary
+
+`typeid` (with the exception of its application on polymorphic glvalues, a
+restriction that https://wg21.link/p1327r0[P1327] proposes to lift) is
+currently allowed in constant expressions, but the resulting `std::type_info`
+object is unusable as it has no `constexpr` member functions.
+
+This paper proposes `std::type_info::operator==` and `operator!=` be made
+`constexpr`, enabling practical, rather than theoretical, use of `typeid`
+in constant expressions.
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4778.)_#
+
+[.navy]#_Change 16.7.2 [type.info] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+namespace std {
+  class type_info {
+  public:
+    virtual ~type_info();
+    [.underline .green]#constexpr# bool operator==(const type_info& rhs) const noexcept;
+    [.underline .green]#constexpr# bool operator!=(const type_info& rhs) const noexcept;
+    size_t hash_code() const noexcept;
+    const char* name() const noexcept;
+    type_info(const type_info& rhs) = delete; // cannot be copied
+    type_info& operator=(const type_info& rhs) = delete; // cannot be copied
+  };
+}
+```
++
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator==(const type_info& rhs) const noexcept;
+```
++
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator!=(const type_info& rhs) const noexcept;
+```
+_-- end_
