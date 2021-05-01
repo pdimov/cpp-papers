@@ -1,0 +1,70 @@
+﻿# Making `std::type_info::operator==` `constexpr`
+Peter Dimov <pdimov@gmail.com>
+:toc: macro
+
+[horizontal]
+Document Number:: D1328R1
+Date:: 2021-05-01
+Project:: Programming Language C++
+Audience:: Library Working Group
+Summary:: This paper proposes making `std::type_info::operator==` `constexpr`.
+
+toc::[]
+
+## Revision History
+
+### Revision R1
+
+* Rebased against N4885
+* Added a feature macro
+
+## Summary
+
+`typeid` is currently allowed in constant expressions, but the resulting
+`std::type_info` object is unusable as it has no `constexpr` member functions.
+
+This paper proposes `std::type_info::operator==` be made `constexpr`, enabling
+practical, rather than theoretical, use of `typeid` in constant expressions.
+
+## Proposed Changes
+
+[.navy]#_(All edits are relative to N4885.)_#
+
+[.navy]#_Change 17.7.3 [type.info] as follows:_#
+
+[none]
+* {blank}
++
+[subs=+quotes]
+```
+namespace std {
+  class type_info {
+  public:
+    virtual ~type_info();
+    [.underline .green]#constexpr# bool operator==(const type_info& rhs) const noexcept;
+    bool before(const type_info& rhs) const noexcept;
+    size_t hash_code() const noexcept;
+    const char* name() const noexcept;
+    type_info(const type_info& rhs) = delete; // cannot be copied
+    type_info& operator=(const type_info& rhs) = delete; // cannot be copied
+  };
+}
+```
++
+[subs=+quotes]
+```
+[.underline .green]#constexpr# bool operator==(const type_info& rhs) const noexcept;
+```
+
+[.navy]#_Add to 17.3.2 [version.syn]:_#
+
+[none]
+* {blank}
++
+```
+#define __cpp_lib_constexpr_typeinfo   202105L  // also in <typeinfo>
+```
+
+[.navy]#_with the value appropriately replaced with the date of adoption._#
+
+_-- end_
